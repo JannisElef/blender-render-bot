@@ -1,0 +1,1760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blender Render Bot Config</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ── RESET & BASE ─────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #0c0e10;
+    --bg2:       #111417;
+    --bg3:       #181c20;
+    --border:    #23282e;
+    --border2:   #2e3540;
+    --text:      #c8d0da;
+    --text-dim:  #5a6472;
+    --text-faint:#333c46;
+    --accent:    #e8a020;
+    --accent2:   #f0c060;
+    --green:     #3ec97a;
+    --red:       #e05050;
+    --blue:      #4a90d9;
+    --purple:    #9b6ee8;
+    --mono:      'IBM Plex Mono', monospace;
+    --display:   'Inter', sans-serif;
+  }
+
+  html { font-size: 13px; scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* ── SCANLINE OVERLAY ─────────────────────────────────────── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,.04) 2px,
+      rgba(0,0,0,.04) 4px
+    );
+    pointer-events: none;
+    z-index: 999;
+  }
+
+  /* ── LAYOUT ───────────────────────────────────────────────── */
+  .shell {
+    display: grid;
+    grid-template-columns: 220px 1fr 340px;
+    grid-template-rows: 52px 1fr;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* ── TOPBAR ───────────────────────────────────────────────── */
+  .topbar {
+    grid-column: 1 / -1;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    gap: 16px;
+  }
+
+  .topbar-logo {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    letter-spacing: 0;
+  }
+
+  .topbar-logo span { color: var(--accent); font-weight: 400; }
+
+  .topbar-tag {
+    font-size: 10px;
+    color: var(--text-dim);
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 2px 7px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+
+  .topbar-right {
+    margin-left: auto;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+
+  /* ── SIDEBAR ──────────────────────────────────────────────── */
+  .sidebar {
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    padding: 16px 0;
+    overflow-y: auto;
+  }
+
+  .nav-section {
+    padding: 8px 16px 4px;
+    font-size: 9px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 16px;
+    font-size: 12px;
+    color: var(--text-dim);
+    cursor: pointer;
+    border-left: 2px solid transparent;
+    transition: all .15s;
+  }
+
+  .nav-item:hover { color: var(--text); background: rgba(255,255,255,.03); }
+  .nav-item.active {
+    color: var(--accent);
+    border-left-color: var(--accent);
+    background: rgba(232,160,32,.06);
+  }
+
+  .nav-item .icon {
+    width: 14px;
+    text-align: center;
+    opacity: .6;
+  }
+  .nav-item.active .icon { opacity: 1; }
+
+  .nav-divider {
+    margin: 8px 16px;
+    border: none;
+    border-top: 1px solid var(--border);
+  }
+
+  /* ── MAIN CONTENT ─────────────────────────────────────────── */
+  .main {
+    overflow-y: auto;
+    padding: 24px 28px;
+  }
+
+  /* ── OUTPUT PANEL ─────────────────────────────────────────── */
+  .output-panel {
+    background: var(--bg2);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .panel-header {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .panel-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .panel-tab {
+    flex: 1;
+    padding: 10px;
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--text-dim);
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    transition: all .15s;
+  }
+
+  .panel-tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  .panel-tab:hover:not(.active) { color: var(--text); }
+
+  .panel-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 14px;
+  }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* ── SECTION GROUPS ───────────────────────────────────────── */
+  .section {
+    display: none;
+    animation: fadeIn .2s ease;
+  }
+  .section.active { display: block; }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+  .section-title {
+    font-family: var(--display);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+    letter-spacing: -0.01em;
+  }
+
+  .section-sub {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-bottom: 24px;
+  }
+
+  .group {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin-bottom: 16px;
+    overflow: hidden;
+  }
+
+  .group-header {
+    padding: 10px 16px;
+    background: var(--bg3);
+    border-bottom: 1px solid var(--border);
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .group-body {
+    padding: 14px 16px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 20px;
+  }
+
+  .group-body.cols-1 { grid-template-columns: 1fr; }
+  .group-body.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+
+  /* ── FORM FIELDS ──────────────────────────────────────────── */
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field.full { grid-column: 1 / -1; }
+
+  label {
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  label .badge {
+    font-size: 8px;
+    padding: 1px 5px;
+    border-radius: 3px;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+  }
+  .badge-blend { background: rgba(74,144,217,.15); color: var(--blue); border: 1px solid rgba(74,144,217,.3); }
+  .badge-opt   { background: rgba(90,100,114,.15); color: var(--text-dim); border: 1px solid var(--border); }
+
+  input[type="text"],
+  input[type="number"],
+  select {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 7px 10px;
+    outline: none;
+    transition: border-color .15s;
+    width: 100%;
+    appearance: none;
+  }
+
+  input:focus, select:focus { border-color: var(--accent); }
+
+  input::placeholder { color: var(--text-faint); }
+
+  select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%235a6472'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 28px;
+    cursor: pointer;
+  }
+
+  /* ── TOGGLE SWITCH ────────────────────────────────────────── */
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .toggle-row:last-child { border-bottom: none; }
+
+  .toggle-label {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .toggle-label .name {
+    font-size: 12px;
+    color: var(--text);
+  }
+
+  .toggle-label .desc {
+    font-size: 10px;
+    color: var(--text-dim);
+  }
+
+  .switch {
+    position: relative;
+    width: 36px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+
+  .switch input { opacity: 0; width: 0; height: 0; }
+
+  .switch-track {
+    position: absolute;
+    inset: 0;
+    background: var(--border2);
+    border-radius: 20px;
+    cursor: pointer;
+    transition: background .2s;
+  }
+
+  .switch-track::after {
+    content: '';
+    position: absolute;
+    left: 3px;
+    top: 3px;
+    width: 14px;
+    height: 14px;
+    background: var(--text-dim);
+    border-radius: 50%;
+    transition: transform .2s, background .2s;
+  }
+
+  .switch input:checked + .switch-track { background: rgba(232,160,32,.3); }
+  .switch input:checked + .switch-track::after {
+    transform: translateX(16px);
+    background: var(--accent);
+  }
+
+  /* ── OUTPUT FORMAT CHIPS ──────────────────────────────────── */
+  .chip-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  .chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--bg);
+    cursor: pointer;
+    transition: all .15s;
+    user-select: none;
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  .chip:hover { border-color: var(--border2); color: var(--text); }
+
+  .chip.active {
+    border-color: var(--accent);
+    background: rgba(232,160,32,.08);
+    color: var(--accent);
+  }
+
+  .chip-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: .5;
+  }
+  .chip.active .chip-dot { opacity: 1; }
+
+  /* ── NOTIFY EVENTS ────────────────────────────────────────── */
+  .notify-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+
+  .n-chip {
+    padding: 4px 10px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    background: var(--bg);
+    font-size: 10px;
+    cursor: pointer;
+    color: var(--text-dim);
+    transition: all .15s;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+  }
+
+  .n-chip:hover { color: var(--text); border-color: var(--border2); }
+  .n-chip.active { border-color: var(--green); color: var(--green); background: rgba(62,201,122,.08); }
+
+  /* ── RANGE SLIDER ─────────────────────────────────────────── */
+  .slider-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  input[type="range"] {
+    flex: 1;
+    appearance: none;
+    height: 3px;
+    background: var(--border2);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+    border: none;
+    padding: 0;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    box-shadow: 0 0 0 3px rgba(232,160,32,.15);
+  }
+
+  .slider-val {
+    min-width: 36px;
+    text-align: right;
+    font-size: 12px;
+    color: var(--accent);
+  }
+
+  /* ── BUTTONS ──────────────────────────────────────────────── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    border: 1px solid;
+    cursor: pointer;
+    transition: all .15s;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #0c0e10;
+  }
+  .btn-primary:hover { background: var(--accent2); border-color: var(--accent2); }
+
+  .btn-ghost {
+    background: transparent;
+    border-color: var(--border2);
+    color: var(--text-dim);
+  }
+  .btn-ghost:hover { border-color: var(--text-dim); color: var(--text); }
+
+  .btn-danger {
+    background: transparent;
+    border-color: rgba(224,80,80,.4);
+    color: var(--red);
+  }
+  .btn-danger:hover { background: rgba(224,80,80,.1); }
+
+  /* ── CODE OUTPUT ──────────────────────────────────────────── */
+  .code-block {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 14px;
+    font-size: 11px;
+    line-height: 1.8;
+    white-space: pre-wrap;
+    word-break: break-all;
+    color: var(--text);
+    min-height: 60px;
+    position: relative;
+  }
+
+  .code-block .kw  { color: var(--accent); }
+  .code-block .val { color: var(--green); }
+  .code-block .flag { color: var(--purple); }
+  .code-block .path { color: var(--blue); }
+  .code-block .comment { color: var(--text-faint); }
+
+  .copy-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    padding: 4px 10px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--text-dim);
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    transition: all .15s;
+  }
+  .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .copy-btn.copied { color: var(--green); border-color: var(--green); }
+
+  /* ── JSON OUTPUT ──────────────────────────────────────────── */
+  .json-key   { color: var(--blue); }
+  .json-str   { color: var(--green); }
+  .json-num   { color: var(--accent); }
+  .json-bool  { color: var(--purple); }
+  .json-null  { color: var(--text-faint); }
+  .json-arr   { color: var(--text); }
+
+  /* ── STATUS DOT ───────────────────────────────────────────── */
+  .status-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 6px var(--accent);
+    animation: pulse 2s ease-in-out infinite;
+    flex-shrink: 0;
+  }
+  @keyframes pulse {
+    0%,100% { opacity: 1; }
+    50% { opacity: .4; }
+  }
+
+  /* ── SCROLLBAR ────────────────────────────────────────────── */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
+
+  /* ── LAUNCH BAR ───────────────────────────────────────────── */
+  .launch-bar {
+    padding: 12px 16px;
+    border-top: 1px solid var(--border);
+    background: var(--bg3);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .launch-bar-label {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: var(--text-faint);
+  }
+
+  /* ── MISC ─────────────────────────────────────────────────── */
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+  }
+  .info-row:last-child { border-bottom: none; }
+  .info-row .k { color: var(--text-dim); }
+  .info-row .v { color: var(--text); font-weight: 500; }
+  .info-row .v.on  { color: var(--green); }
+  .info-row .v.off { color: var(--text-faint); }
+
+  .tag { display: inline-flex; align-items: center; gap: 4px; }
+  .tag-dot { width: 5px; height: 5px; border-radius: 50%; }
+
+  input[type=number]::-webkit-inner-spin-button { opacity: .4; }
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- ── TOPBAR ─────────────────────────────────────────────── -->
+  <header class="topbar">
+    <div class="topbar-logo">Blender Render Bot <span>// render_bot.py config</span></div>
+    <div class="topbar-tag">watcher</div>
+    <div class="topbar-right">
+      <button class="btn btn-ghost" onclick="resetAll()">↺ Reset</button>
+      <button class="btn btn-primary" onclick="generate()">⚡ Generate</button>
+    </div>
+  </header>
+
+  <!-- ── SIDEBAR ────────────────────────────────────────────── -->
+  <nav class="sidebar">
+    <div class="nav-section">Setup</div>
+    <div class="nav-item active" onclick="showSection('paths', this)">
+      <span class="icon">⬡</span> Paths
+    </div>
+    <div class="nav-item" onclick="showSection('outputs', this)">
+      <span class="icon">◈</span> Output Formats
+    </div>
+
+    <hr class="nav-divider">
+    <div class="nav-section">Watcher</div>
+    <div class="nav-item" onclick="showSection('git', this)">
+      <span class="icon">⎇</span> Git
+    </div>
+    <div class="nav-item" onclick="showSection('reliability', this)">
+      <span class="icon">⟳</span> Reliability
+    </div>
+    <div class="nav-item" onclick="showSection('flags', this)">
+      <span class="icon">⚑</span> Flags
+    </div>
+
+    <hr class="nav-divider">
+    <div class="nav-section">Render Defaults</div>
+    <div class="nav-item" onclick="showSection('scene', this)">
+      <span class="icon">◉</span> Scene
+    </div>
+    <div class="nav-item" onclick="showSection('mp4', this)">
+      <span class="icon">▶</span> MP4
+    </div>
+    <div class="nav-item" onclick="showSection('gif', this)">
+      <span class="icon">◌</span> GIF
+    </div>
+    <div class="nav-item" onclick="showSection('webm', this)">
+      <span class="icon">◎</span> WebM
+    </div>
+    <div class="nav-item" onclick="showSection('sprite', this)">
+      <span class="icon">▦</span> Spritesheet
+    </div>
+
+    <hr class="nav-divider">
+    <div class="nav-section">Extras</div>
+    <div class="nav-item" onclick="showSection('logging', this)">
+      <span class="icon">≡</span> Logging
+    </div>
+    <div class="nav-item" onclick="showSection('notify', this)">
+      <span class="icon">◈</span> Notifications
+    </div>
+    <div class="nav-item" onclick="showSection('meta', this)">
+      <span class="icon">◇</span> Job Meta
+    </div>
+  </nav>
+
+  <!-- ── MAIN ───────────────────────────────────────────────── -->
+  <main class="main">
+
+    <!-- PATHS -->
+    <div class="section active" id="s-paths">
+      <div class="section-title">Paths</div>
+      <div class="section-sub">Executables and repository location.</div>
+
+      <div class="group">
+        <div class="group-header">⬡ Executables</div>
+        <div class="group-body cols-1">
+          <div class="field">
+            <label>Blender executable</label>
+            <input type="text" id="blender" value="blender" placeholder="blender  or  C:\Program Files\Blender Foundation\Blender 5.0\blender.exe">
+          </div>
+          <div class="field">
+            <label>FFmpeg executable</label>
+            <input type="text" id="ffmpeg" value="ffmpeg" placeholder="ffmpeg  or  C:\ffmpeg\bin\ffmpeg.exe">
+          </div>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="group-header">⬡ Repository</div>
+        <div class="group-body cols-1">
+          <div class="field">
+            <label>Repo directory <span class="badge badge-opt">optional</span></label>
+            <input type="text" id="repoDir" value="." placeholder=". (script directory)">
+          </div>
+          <div class="field">
+            <label>Global config JSON <span class="badge badge-opt">optional</span></label>
+            <input type="text" id="globalConfig" placeholder="render_bot.json">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- OUTPUTS -->
+    <div class="section" id="s-outputs">
+      <div class="section-title">Output Formats</div>
+      <div class="section-sub">Select which formats are produced for every job. Per-job JSON can override this.</div>
+
+      <div class="group">
+        <div class="group-header">◈ Formats</div>
+        <div class="group-body cols-1">
+          <div class="field">
+            <label>Active formats</label>
+            <div class="chip-group" id="outputChips">
+              <div class="chip active" data-val="mp4"        onclick="toggleChip(this)"><span class="chip-dot"></span>mp4</div>
+              <div class="chip"        data-val="gif"        onclick="toggleChip(this)"><span class="chip-dot"></span>gif</div>
+              <div class="chip"        data-val="webm"       onclick="toggleChip(this)"><span class="chip-dot"></span>webm</div>
+              <div class="chip"        data-val="frames"     onclick="toggleChip(this)"><span class="chip-dot"></span>frames</div>
+              <div class="chip"        data-val="spritesheet"onclick="toggleChip(this)"><span class="chip-dot"></span>spritesheet</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="group-header">◈ Frame handling</div>
+        <div class="group-body cols-1">
+          <div class="field">
+            <label>Intermediate frame format</label>
+            <select id="frameFormat">
+              <option value="PNG">PNG</option>
+              <option value="EXR">EXR (OpenEXR, HDR)</option>
+              <option value="JPEG">JPEG</option>
+            </select>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <span class="name">Keep frames</span>
+              <span class="desc">Retain PNG / EXR / JPEG frames after post-processing. Implied when "frames" output is active.</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="keepFrames">
+              <span class="switch-track"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GIT -->
+    <div class="section" id="s-git">
+      <div class="section-title">Git</div>
+      <div class="section-sub">How the watcher pulls changes and pushes results.</div>
+
+      <div class="group">
+        <div class="group-header">⎇ Remote</div>
+        <div class="group-body">
+          <div class="field">
+            <label>Remote</label>
+            <input type="text" id="remote" value="origin">
+          </div>
+          <div class="field">
+            <label>Watch branch <span class="badge badge-opt">optional</span></label>
+            <input type="text" id="branch" placeholder="main  (current branch if blank)">
+          </div>
+          <div class="field">
+            <label>Push to branch <span class="badge badge-opt">optional</span></label>
+            <input type="text" id="pushBranch" placeholder="renders  (same as pull if blank)">
+          </div>
+          <div class="field">
+            <label>Pull strategy</label>
+            <select id="pullStrategy">
+              <option value="merge">merge</option>
+              <option value="rebase">rebase</option>
+              <option value="ff-only">ff-only</option>
+            </select>
+          </div>
+          <div class="field full">
+            <label>Commit message template <span class="badge badge-opt">optional</span></label>
+            <input type="text" id="commitMsg" placeholder="Auto-Render: {jobs} job(s) completed [{date}]">
+          </div>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="group-header">⎇ Push Flags</div>
+        <div class="group-body cols-1">
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <span class="name">--no-push</span>
+              <span class="desc">Skip committing and pushing rendered outputs.</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="noPush">
+              <span class="switch-track"></span>
+            </label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <span class="name">--push-outputs-only</span>
+              <span class="desc">Only git add output directories, not the whole working tree.</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="pushOutputsOnly">
+              <span class="switch-track"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="group-header">⎇ File Detection</div>
+        <div class="group-body">
+          <div class="field">
+            <label>Watch patterns</label>
+            <input type="text" id="watchPatterns" value="*.blend *.json" placeholder="*.blend *.json">
+          </div>
+          <div class="field">
+            <label>Ignore patterns <span class="badge badge-opt">optional</span></label>
+            <input type="text" id="ignorePatterns" placeholder="draft_* wip_*">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RELIABILITY -->
+    <div class="section" id="s-reliability">
+      <div class="section-title">Reliability</div>
+      <div class="section-sub">Retry logic, timeouts, and parallel execution.</div>
+
+      <div class="group">
+        <div class="group-header">⟳ Polling</div>
+        <div class="group-body cols-1">
+          <div class="field">
+            <label>Interval (seconds)</label>
+            <div class="slider-row">
+              <input type="range" id="intervalSlider" min="5" max="300" step="5" value="30" oninput="syncSlider('interval','intervalSlider')">
+              <input type="number" id="interval" value="30" min="5" style="width:70px" oninput="syncSlider('intervalSlider','interval',true)">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="group-header">⟳ Retries</div>
+        <div class="group-body">
+          <div class="field">
+            <label>Max retries</label>
+            <input type="number" id="maxRetries" value="3" min="0">
+          </div>
+          <div class="field">
+            <label>Retry delay (seconds)</label>
+            <input type="number" id="retryDelay" value="10" min="0">
+          </div>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="group-header">⟳ Parallel & Timeout</div>
+        <div class="group-body">
+          <div class="field">
+            <label>Max parallel jobs</label>
+            <input type="number" id="maxParallel" value="1" min="1" max="16">
+          </div>
+          <div class="field">
+            <label>Job timeout (seconds) <span class="badge badge-opt">optional</span></label>
+            <input type="number" id="jobTimeout" placeholder="none">
+          </div>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="group-header">⟳ State Files</div>
+        <div class="group-body">
+          <div class="field">
+            <label>Lock file</label>
+            <input type="text" id="lockFile" value=".render_bot.lock">
+          </div>
+          <div class="field">
+            <label>State file</label>
+            <input type="text" id="stateFile" value=".render_bot_state.json">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FLAGS -->
+    <div class="section" id="s-flags">
+      <div class="section-title">Flags</div>
+      <div class="section-sub">Boolean switches that change watcher behaviour.</div>
+
+      <div class="group">
+        <div class="group-header">⚑ Behaviour</div>
+        <div class="group-body cols-1">
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <span class="name">--fancy</span>
+              <span class="desc">Colored terminal output with banners and step indicators.</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="fancy" checked>
+              <span class="switch-track"></span>
+            </label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <span class="name">--show-progress</span>
+              <span class="desc">Stream live stdout/stderr from Blender and FFmpeg.</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="showProgress">
+              <span class="switch-track"></span>
+            </label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <span class="name">--summary</span>
+              <span class="desc">Write summary.json to every output directory.</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="summary">
+              <span class="switch-track"></span>
+            </label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <span class="name">--dry-run</span>
+              <span class="desc">Print all commands but run nothing. Good for testing config.</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="dryRun">
+              <span class="switch-track"></span>
+            </label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <span class="name">--once</span>
+              <span class="desc">Check for changes exactly once, then exit (CI mode).</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="once">
+              <span class="switch-track"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SCENE -->
+    <div class="section" id="s-scene">
+      <div class="section-title">Scene Defaults</div>
+      <div class="section-sub">Watcher-level defaults. Leave blank to read the value from the <code>.blend</code> file. Per-job JSON can override these too.</div>
+
+      <div class="group">
+        <div class="group-header">◉ Resolution & Timing</div>
+        <div class="group-body">
+          <div class="field">
+            <label>Width <span class="badge badge-blend">from .blend</span></label>
+            <input type="number" id="width" placeholder="e.g. 1920">
+          </div>
+          <div class="field">
+            <label>Height <span class="badge badge-blend">from .blend</span></label>
+            <input type="number" id="height" placeholder="e.g. 1080">
+          </div>
+          <div class="field">
+            <label>FPS <span class="badge badge-blend">from .blend</span></label>
+            <input type="number" id="fps" placeholder="e.g. 24">
+          </div>
+          <div class="field">
+            <label>Frame Start <span class="badge badge-blend">from .blend</span></label>
+            <input type="number" id="frameStart" placeholder="e.g. 1">
+          </div>
+          <div class="field">
+            <label>Frame End <span class="badge badge-blend">from .blend</span></label>
+            <input type="number" id="frameEnd" placeholder="e.g. 250">
+          </div>
+          <div class="field">
+            <label>Frame Step <span class="badge badge-blend">from .blend</span></label>
+            <input type="number" id="frameStep" placeholder="1">
+          </div>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="group-header">◉ Renderer</div>
+        <div class="group-body">
+          <div class="field">
+            <label>Engine <span class="badge badge-blend">from .blend</span></label>
+            <select id="engine">
+              <option value="">(from .blend)</option>
+              <option value="CYCLES">CYCLES</option>
+              <option value="BLENDER_EEVEE_NEXT">EEVEE Next</option>
+              <option value="BLENDER_WORKBENCH">Workbench</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Device <span class="badge badge-blend">from .blend</span></label>
+            <select id="device">
+              <option value="">(from .blend)</option>
+              <option value="CPU">CPU</option>
+              <option value="GPU">GPU</option>
+              <option value="OPTIX">OPTIX</option>
+              <option value="HIP">HIP</option>
+              <option value="METAL">METAL</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Samples <span class="badge badge-blend">from .blend</span></label>
+            <input type="number" id="samples" placeholder="e.g. 128">
+          </div>
+          <div class="field">
+            <label>Threads <span class="badge badge-blend">from .blend</span></label>
+            <input type="number" id="threads" placeholder="0 = auto">
+          </div>
+          <div class="field">
+            <label>Scene name <span class="badge badge-blend">from .blend</span></label>
+            <input type="text" id="scene" placeholder="Scene">
+          </div>
+          <div class="field">
+            <label>Camera name <span class="badge badge-blend">from .blend</span></label>
+            <input type="text" id="camera" placeholder="Camera">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MP4 -->
+    <div class="section" id="s-mp4">
+      <div class="section-title">MP4 Settings</div>
+      <div class="section-sub">Applied when <code>mp4</code> is in active outputs.</div>
+      <div class="group">
+        <div class="group-header">▶ Encoding</div>
+        <div class="group-body">
+          <div class="field">
+            <label>Codec</label>
+            <select id="mp4Codec">
+              <option value="libx264">libx264  (H.264)</option>
+              <option value="libx265">libx265  (H.265)</option>
+              <option value="libvpx-vp9">libvpx-vp9  (VP9)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Preset</label>
+            <select id="mp4Preset">
+              <option value="ultrafast">ultrafast</option>
+              <option value="superfast">superfast</option>
+              <option value="veryfast">veryfast</option>
+              <option value="faster">faster</option>
+              <option value="fast">fast</option>
+              <option value="medium" selected>medium</option>
+              <option value="slow">slow</option>
+              <option value="slower">slower</option>
+              <option value="veryslow">veryslow</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>CRF (quality — 0=lossless, 51=worst)</label>
+            <div class="slider-row">
+              <input type="range" id="mp4CrfSlider" min="0" max="51" value="18" oninput="syncSlider('mp4Crf','mp4CrfSlider')">
+              <input type="number" id="mp4Crf" value="18" min="0" max="51" style="width:60px" oninput="syncSlider('mp4CrfSlider','mp4Crf',true)">
+            </div>
+          </div>
+          <div class="field">
+            <label>FPS override <span class="badge badge-opt">optional</span></label>
+            <input type="number" id="mp4Fps" placeholder="(from scene fps)">
+          </div>
+          <div class="field full">
+            <label>Audio file <span class="badge badge-opt">optional</span></label>
+            <input type="text" id="mp4Audio" placeholder="path/to/audio.wav">
+          </div>
+          <div class="field full">
+            <label>Extra FFmpeg args <span class="badge badge-opt">optional</span></label>
+            <input type="text" id="mp4ExtraArgs" placeholder="-movflags +faststart">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GIF -->
+    <div class="section" id="s-gif">
+      <div class="section-title">GIF Settings</div>
+      <div class="section-sub">Applied when <code>gif</code> is in active outputs.</div>
+      <div class="group">
+        <div class="group-header">◌ Palette & Size</div>
+        <div class="group-body">
+          <div class="field">
+            <label>FPS</label>
+            <input type="number" id="gifFps" value="15" min="1" max="60">
+          </div>
+          <div class="field">
+            <label>Width (-1 = original)</label>
+            <input type="number" id="gifWidth" value="640">
+          </div>
+          <div class="field">
+            <label>Loop (0 = infinite)</label>
+            <input type="number" id="gifLoop" value="0" min="0">
+          </div>
+          <div class="field">
+            <label>Dithering</label>
+            <select id="gifDither">
+              <option value="bayer">bayer</option>
+              <option value="floyd_steinberg">floyd_steinberg</option>
+              <option value="none">none</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- WEBM -->
+    <div class="section" id="s-webm">
+      <div class="section-title">WebM Settings</div>
+      <div class="section-sub">Applied when <code>webm</code> is in active outputs. VP9 with alpha channel support.</div>
+      <div class="group">
+        <div class="group-header">◎ VP9 Encoding</div>
+        <div class="group-body">
+          <div class="field">
+            <label>CRF (quality)</label>
+            <div class="slider-row">
+              <input type="range" id="webmCrfSlider" min="0" max="63" value="30" oninput="syncSlider('webmCrf','webmCrfSlider')">
+              <input type="number" id="webmCrf" value="30" min="0" max="63" style="width:60px" oninput="syncSlider('webmCrfSlider','webmCrf',true)">
+            </div>
+          </div>
+          <div class="field">
+            <label>FPS override <span class="badge badge-opt">optional</span></label>
+            <input type="number" id="webmFps" placeholder="(from scene fps)">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SPRITESHEET -->
+    <div class="section" id="s-sprite">
+      <div class="section-title">Spritesheet Settings</div>
+      <div class="section-sub">Applied when <code>spritesheet</code> is in active outputs.</div>
+      <div class="group">
+        <div class="group-header">▦ Grid</div>
+        <div class="group-body">
+          <div class="field">
+            <label>Columns</label>
+            <input type="number" id="spriteCols" value="8" min="1">
+          </div>
+          <div class="field">
+            <label>Frame tile width <span class="badge badge-opt">optional</span></label>
+            <input type="number" id="spriteScale" placeholder="(original)">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LOGGING -->
+    <div class="section" id="s-logging">
+      <div class="section-title">Logging</div>
+      <div class="section-sub">Terminal verbosity and log file output.</div>
+      <div class="group">
+        <div class="group-header">≡ Output</div>
+        <div class="group-body">
+          <div class="field">
+            <label>Log level</label>
+            <select id="logLevel">
+              <option value="DEBUG">DEBUG</option>
+              <option value="INFO" selected>INFO</option>
+              <option value="WARNING">WARNING</option>
+              <option value="ERROR">ERROR</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Log file <span class="badge badge-opt">optional</span></label>
+            <input type="text" id="logFile" placeholder="render_bot.log">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NOTIFICATIONS -->
+    <div class="section" id="s-notify">
+      <div class="section-title">Notifications</div>
+      <div class="section-sub">Webhook for Discord / Slack job events.</div>
+      <div class="group">
+        <div class="group-header">◈ Webhook</div>
+        <div class="group-body cols-1">
+          <div class="field">
+            <label>Webhook URL <span class="badge badge-opt">optional</span></label>
+            <input type="text" id="notifyWebhook" placeholder="https://discord.com/api/webhooks/...">
+          </div>
+          <div class="field">
+            <label>Notify on events</label>
+            <div class="notify-chips">
+              <div class="n-chip" data-val="start"  onclick="toggleNChip(this)">start</div>
+              <div class="n-chip active" data-val="done"   onclick="toggleNChip(this)">done</div>
+              <div class="n-chip active" data-val="error"  onclick="toggleNChip(this)">error</div>
+              <div class="n-chip" data-val="retry"  onclick="toggleNChip(this)">retry</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- META -->
+    <div class="section" id="s-meta">
+      <div class="section-title">Job Meta</div>
+      <div class="section-sub">Default metadata applied to every watcher job (can be overridden per-job in JSON).</div>
+      <div class="group">
+        <div class="group-header">◇ Identity</div>
+        <div class="group-body">
+          <div class="field">
+            <label>Job ID <span class="badge badge-opt">optional</span></label>
+            <input type="text" id="jobId" placeholder="watcher-default">
+          </div>
+          <div class="field">
+            <label>Tags <span class="badge badge-opt">optional</span></label>
+            <input type="text" id="tags" placeholder="auto nightly v2">
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ── OUTPUT PANEL ────────────────────────────────────────── -->
+  <aside class="output-panel">
+    <div class="panel-header">
+      <div class="status-dot"></div>
+      Output
+    </div>
+    <div class="panel-tabs">
+      <button class="panel-tab active" onclick="showTab('cmd',this)">CMD / BAT</button>
+      <button class="panel-tab" onclick="showTab('json',this)">job JSON</button>
+      <button class="panel-tab" onclick="showTab('summary',this)">Summary</button>
+    </div>
+    <div class="panel-body">
+
+      <!-- CMD tab -->
+      <div class="tab-content active" id="tab-cmd">
+        <div style="margin-bottom:10px;font-size:10px;color:var(--text-dim)">
+          Paste into a terminal or save as <code>.bat</code>
+        </div>
+        <div class="code-block" id="cmdOutput" style="min-height:120px">
+          <button class="copy-btn" onclick="copyBlock('cmdOutput',this)">copy</button>
+          <span class="comment">:: run Generate to build command</span>
+        </div>
+        <div style="margin-top:12px;font-size:10px;color:var(--text-dim)">
+          Download .bat
+        </div>
+        <div style="margin-top:6px">
+          <button class="btn btn-primary" onclick="downloadBat()" style="width:100%">⬇ Download launch_watcher.bat</button>
+        </div>
+      </div>
+
+      <!-- JSON tab -->
+      <div class="tab-content" id="tab-json">
+        <div style="margin-bottom:10px;font-size:10px;color:var(--text-dim)">
+          Save as <code>&lt;blend_stem&gt;.json</code> next to your <code>.blend</code>
+        </div>
+        <div class="code-block" id="jsonOutput" style="min-height:120px">
+          <button class="copy-btn" onclick="copyBlock('jsonOutput',this)">copy</button>
+          <span class="comment">// run Generate to build JSON</span>
+        </div>
+        <div style="margin-top:6px">
+          <button class="btn btn-ghost" onclick="downloadJson()" style="width:100%">⬇ Download job_config.json</button>
+        </div>
+      </div>
+
+      <!-- Summary tab -->
+      <div class="tab-content" id="tab-summary">
+        <div id="summaryContent" style="font-size:11px">
+          <div style="color:var(--text-dim);font-size:11px">Run Generate to see summary.</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Launch bar -->
+    <div class="launch-bar">
+      <div class="launch-bar-label">Quick Actions</div>
+      <button class="btn btn-primary" onclick="generate()" style="width:100%">⚡ Generate Config</button>
+      <button class="btn btn-ghost" onclick="resetAll()" style="width:100%">↺ Reset All to Defaults</button>
+    </div>
+  </aside>
+
+</div>
+
+<script>
+// ── NAV ──────────────────────────────────────────────────────
+function showSection(id, el) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('s-' + id).classList.add('active');
+  el.classList.add('active');
+}
+
+function showTab(id, el) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  el.classList.add('active');
+}
+
+// ── CHIPS ─────────────────────────────────────────────────────
+function toggleChip(el) { el.classList.toggle('active'); generate(); }
+function toggleNChip(el) { el.classList.toggle('active'); generate(); }
+
+// ── SLIDERS ───────────────────────────────────────────────────
+function syncSlider(targetId, sourceId, fromInput) {
+  const src = document.getElementById(sourceId);
+  const tgt = document.getElementById(targetId);
+  if (tgt) tgt.value = src.value;
+  generate();
+}
+
+// ── HELPERS ───────────────────────────────────────────────────
+function val(id)       { return document.getElementById(id)?.value?.trim() || ''; }
+function checked(id)   { return document.getElementById(id)?.checked; }
+function num(id)       { const v = val(id); return v ? parseInt(v) : null; }
+function numf(id)      { const v = val(id); return v ? parseFloat(v) : null; }
+
+function getOutputs() {
+  return [...document.querySelectorAll('#outputChips .chip.active')].map(c => c.dataset.val);
+}
+
+function getNotifyOn() {
+  return [...document.querySelectorAll('.n-chip.active')].map(c => c.dataset.val);
+}
+
+// ── GENERATE ──────────────────────────────────────────────────
+function generate() {
+  buildCmd();
+  buildJson();
+  buildSummary();
+}
+
+function buildCmd() {
+  const parts = ['python render_bot.py watch'];
+
+  const repoDir = val('repoDir');
+  if (repoDir && repoDir !== '.') parts.push(`--repo-dir "${repoDir}"`);
+
+  parts.push(`--interval ${val('interval') || 30}`);
+
+  const remote = val('remote');
+  if (remote && remote !== 'origin') parts.push(`--remote ${remote}`);
+
+  const branch = val('branch');
+  if (branch) parts.push(`--branch ${branch}`);
+
+  const pushBranch = val('pushBranch');
+  if (pushBranch) parts.push(`--push-branch ${pushBranch}`);
+
+  const strategy = val('pullStrategy');
+  if (strategy && strategy !== 'merge') parts.push(`--git-pull-strategy ${strategy}`);
+
+  const commitMsg = val('commitMsg');
+  if (commitMsg) parts.push(`--commit-message "${commitMsg}"`);
+
+  const watchPat = val('watchPatterns');
+  if (watchPat && watchPat !== '*.blend *.json') parts.push(`--watch-patterns ${watchPat}`);
+
+  const ignorePat = val('ignorePatterns');
+  if (ignorePat) parts.push(`--ignore-patterns ${ignorePat}`);
+
+  const maxRetries = val('maxRetries');
+  if (maxRetries && maxRetries !== '3') parts.push(`--max-retries ${maxRetries}`);
+
+  const retryDelay = val('retryDelay');
+  if (retryDelay && retryDelay !== '10') parts.push(`--retry-delay ${retryDelay}`);
+
+  const maxParallel = val('maxParallel');
+  if (maxParallel && maxParallel !== '1') parts.push(`--max-parallel ${maxParallel}`);
+
+  const jobTimeout = val('jobTimeout');
+  if (jobTimeout) parts.push(`--job-timeout ${jobTimeout}`);
+
+  const lockFile = val('lockFile');
+  if (lockFile && lockFile !== '.render_bot.lock') parts.push(`--lock-file "${lockFile}"`);
+
+  const stateFile = val('stateFile');
+  if (stateFile && stateFile !== '.render_bot_state.json') parts.push(`--state-file "${stateFile}"`);
+
+  const outputs = getOutputs();
+  if (outputs.length) parts.push(`--outputs ${outputs.join(' ')}`);
+
+  const blender = val('blender');
+  if (blender && blender !== 'blender') parts.push(`--blender "${blender}"`);
+
+  const ffmpeg = val('ffmpeg');
+  if (ffmpeg && ffmpeg !== 'ffmpeg') parts.push(`--ffmpeg "${ffmpeg}"`);
+
+  const globalCfg = val('globalConfig');
+  if (globalCfg) parts.push(`--config "${globalCfg}"`);
+
+  const logLevel = val('logLevel');
+  if (logLevel && logLevel !== 'INFO') parts.push(`--log-level ${logLevel}`);
+
+  const logFile = val('logFile');
+  if (logFile) parts.push(`--log-file "${logFile}"`);
+
+  const notifyUrl = val('notifyWebhook');
+  if (notifyUrl) {
+    parts.push(`--notify-webhook "${notifyUrl}"`);
+    const notifyOn = getNotifyOn();
+    if (notifyOn.length) parts.push(`--notify-on ${notifyOn.join(' ')}`);
+  }
+
+  // scene overrides
+  const w = val('width'); if (w) parts.push(`--width ${w}`);
+  const h = val('height'); if (h) parts.push(`--height ${h}`);
+  const fps = val('fps'); if (fps) parts.push(`--fps ${fps}`);
+  const fs = val('frameStart'); if (fs) parts.push(`--frame-start ${fs}`);
+  const fe = val('frameEnd'); if (fe) parts.push(`--frame-end ${fe}`);
+  const fstep = val('frameStep'); if (fstep) parts.push(`--frame-step ${fstep}`);
+  const engine = val('engine'); if (engine) parts.push(`--engine ${engine}`);
+  const device = val('device'); if (device) parts.push(`--device ${device}`);
+  const samples = val('samples'); if (samples) parts.push(`--samples ${samples}`);
+  const threads = val('threads'); if (threads) parts.push(`--threads ${threads}`);
+  const scene = val('scene'); if (scene) parts.push(`--scene ${scene}`);
+  const camera = val('camera'); if (camera) parts.push(`--camera ${camera}`);
+
+  // mp4
+  const mp4Crf = val('mp4Crf'); if (mp4Crf && mp4Crf !== '18') parts.push(`--mp4-crf ${mp4Crf}`);
+  const mp4Preset = val('mp4Preset'); if (mp4Preset && mp4Preset !== 'medium') parts.push(`--mp4-preset ${mp4Preset}`);
+  const mp4Codec = val('mp4Codec'); if (mp4Codec && mp4Codec !== 'libx264') parts.push(`--mp4-codec ${mp4Codec}`);
+  const mp4Fps = val('mp4Fps'); if (mp4Fps) parts.push(`--mp4-fps ${mp4Fps}`);
+  const mp4Audio = val('mp4Audio'); if (mp4Audio) parts.push(`--mp4-audio "${mp4Audio}"`);
+  const mp4Extra = val('mp4ExtraArgs'); if (mp4Extra) parts.push(`--mp4-extra-args ${mp4Extra}`);
+
+  // gif
+  const gifFps = val('gifFps'); if (gifFps && gifFps !== '15') parts.push(`--gif-fps ${gifFps}`);
+  const gifW = val('gifWidth'); if (gifW && gifW !== '640') parts.push(`--gif-width ${gifW}`);
+  const gifLoop = val('gifLoop'); if (gifLoop && gifLoop !== '0') parts.push(`--gif-loop ${gifLoop}`);
+  const gifDither = val('gifDither'); if (gifDither && gifDither !== 'bayer') parts.push(`--gif-dither ${gifDither}`);
+
+  // webm
+  const webmCrf = val('webmCrf'); if (webmCrf && webmCrf !== '30') parts.push(`--webm-crf ${webmCrf}`);
+  const webmFps = val('webmFps'); if (webmFps) parts.push(`--webm-fps ${webmFps}`);
+
+  // spritesheet
+  const spriteCols = val('spriteCols'); if (spriteCols && spriteCols !== '8') parts.push(`--spritesheet-cols ${spriteCols}`);
+  const spriteScale = val('spriteScale'); if (spriteScale) parts.push(`--spritesheet-scale ${spriteScale}`);
+
+  // frame format
+  const ff = val('frameFormat'); if (ff && ff !== 'PNG') parts.push(`--frame-format ${ff}`);
+
+  // flags
+  if (checked('noPush'))          parts.push('--no-push');
+  if (checked('pushOutputsOnly')) parts.push('--push-outputs-only');
+  if (checked('fancy'))           parts.push('--fancy');
+  if (checked('showProgress'))    parts.push('--show-progress');
+  if (checked('summary'))         parts.push('--summary');
+  if (checked('dryRun'))          parts.push('--dry-run');
+  if (checked('once'))            parts.push('--once');
+  if (checked('keepFrames'))      parts.push('--keep-frames');
+
+  // job meta
+  const jobId = val('jobId'); if (jobId) parts.push(`--job-id ${jobId}`);
+  const tags = val('tags'); if (tags) parts.push(`--tags ${tags}`);
+
+  // Format for display: break after every arg that starts with --
+  const formatted = parts.join(' ^\n    ');
+
+  const el = document.getElementById('cmdOutput');
+  el.innerHTML = `<button class="copy-btn" onclick="copyBlock('cmdOutput',this)">copy</button>` +
+    `<span class="kw">python</span> render_bot.py <span class="flag">watch</span> ^\n    ` +
+    parts.slice(1).join(' ^\n    ')
+      .replace(/--[\w-]+/g, m => `<span class="flag">${m}</span>`)
+      .replace(/"([^"]+)"/g, m => `<span class="path">${m}</span>`);
+
+  // store plain version for download
+  el.dataset.plain = 'python render_bot.py watch ' + parts.slice(1).join(' ^\r\n    ');
+}
+
+function buildJson() {
+  const cfg = {};
+
+  const outputs = getOutputs();
+  if (outputs.length) cfg.outputs = outputs;
+
+  const ff = val('frameFormat'); if (ff && ff !== 'PNG') cfg.frame_format = ff;
+  if (checked('keepFrames')) cfg.keep_frames = true;
+
+  const w = val('width'); if (w) cfg.width = parseInt(w);
+  const h = val('height'); if (h) cfg.height = parseInt(h);
+  const fps = val('fps'); if (fps) cfg.fps = parseInt(fps);
+  const fs = val('frameStart'); if (fs) cfg.frame_start = parseInt(fs);
+  const fe = val('frameEnd'); if (fe) cfg.frame_end = parseInt(fe);
+  const fstep = val('frameStep'); if (fstep) cfg.frame_step = parseInt(fstep);
+  const engine = val('engine'); if (engine) cfg.engine = engine;
+  const device = val('device'); if (device) cfg.device = device;
+  const samples = val('samples'); if (samples) cfg.samples = parseInt(samples);
+  const threads = val('threads'); if (threads) cfg.threads = parseInt(threads);
+  const scene = val('scene'); if (scene) cfg.scene = scene;
+  const camera = val('camera'); if (camera) cfg.camera = camera;
+
+  // mp4
+  const mp4Crf = val('mp4Crf'); if (mp4Crf) cfg.mp4_crf = parseInt(mp4Crf);
+  const mp4Preset = val('mp4Preset'); if (mp4Preset) cfg.mp4_preset = mp4Preset;
+  const mp4Codec = val('mp4Codec'); if (mp4Codec) cfg.mp4_codec = mp4Codec;
+  const mp4Fps = val('mp4Fps'); if (mp4Fps) cfg.mp4_fps = parseInt(mp4Fps);
+  const mp4Audio = val('mp4Audio'); if (mp4Audio) cfg.mp4_audio = mp4Audio;
+  const mp4Extra = val('mp4ExtraArgs'); if (mp4Extra) cfg.mp4_extra_args = mp4Extra.split(' ');
+
+  // gif
+  cfg.gif_fps = parseInt(val('gifFps') || '15');
+  cfg.gif_width = parseInt(val('gifWidth') || '640');
+  const gifLoop = val('gifLoop'); if (gifLoop) cfg.gif_loop = parseInt(gifLoop);
+  cfg.gif_dither = val('gifDither') || 'bayer';
+
+  // webm
+  cfg.webm_crf = parseInt(val('webmCrf') || '30');
+  const webmFps = val('webmFps'); if (webmFps) cfg.webm_fps = parseInt(webmFps);
+
+  // spritesheet
+  cfg.spritesheet_cols = parseInt(val('spriteCols') || '8');
+  const spriteScale = val('spriteScale'); if (spriteScale) cfg.spritesheet_scale = parseInt(spriteScale);
+
+  if (checked('summary')) cfg.summary = true;
+  const jobId = val('jobId'); if (jobId) cfg.job_id = jobId;
+  const tags = val('tags'); if (tags) cfg.tags = tags.split(/\s+/);
+
+  const notifyUrl = val('notifyWebhook');
+  if (notifyUrl) {
+    cfg.notify_webhook = notifyUrl;
+    cfg.notify_on = getNotifyOn();
+  }
+
+  const jsonStr = JSON.stringify(cfg, null, 4);
+  const highlighted = syntaxHighlight(jsonStr);
+
+  const el = document.getElementById('jsonOutput');
+  el.innerHTML = `<button class="copy-btn" onclick="copyBlock('jsonOutput',this)">copy</button>` + highlighted;
+  el.dataset.plain = jsonStr;
+}
+
+function syntaxHighlight(json) {
+  return json
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, m => {
+      let cls = 'json-num';
+      if (/^"/.test(m)) cls = /:$/.test(m) ? 'json-key' : 'json-str';
+      else if (/true|false/.test(m)) cls = 'json-bool';
+      else if (/null/.test(m)) cls = 'json-null';
+      return `<span class="${cls}">${m}</span>`;
+    });
+}
+
+function buildSummary() {
+  const outputs = getOutputs();
+  const blender = val('blender') || 'blender';
+  const ffmpeg = val('ffmpeg') || 'ffmpeg';
+
+  const rows = [
+    ['Repo Dir',       val('repoDir') || '.'],
+    ['Interval',       (val('interval') || 30) + 's'],
+    ['Branch',         val('branch') || '(current)'],
+    ['Remote',         val('remote') || 'origin'],
+    ['Push branch',    val('pushBranch') || '(same)'],
+    ['Pull strategy',  val('pullStrategy') || 'merge'],
+    ['Outputs',        outputs.join(', ') || '—'],
+    ['Frame format',   val('frameFormat') || 'PNG'],
+    ['Keep frames',    checked('keepFrames') ? 'yes' : 'no'],
+    ['Engine',         val('engine') || '(from .blend)'],
+    ['Device',         val('device') || '(from .blend)'],
+    ['Resolution',     (val('width') && val('height')) ? `${val('width')}×${val('height')}` : '(from .blend)'],
+    ['FPS',            val('fps') || '(from .blend)'],
+    ['Samples',        val('samples') || '(from .blend)'],
+    ['Max parallel',   val('maxParallel') || 1],
+    ['Max retries',    val('maxRetries') || 3],
+    ['Job timeout',    val('jobTimeout') ? val('jobTimeout') + 's' : 'none'],
+    ['Fancy output',   checked('fancy') ? 'yes' : 'no'],
+    ['Dry run',        checked('dryRun') ? 'YES' : 'no'],
+    ['No push',        checked('noPush') ? 'yes' : 'no'],
+    ['Summary JSON',   checked('summary') ? 'yes' : 'no'],
+    ['Log level',      val('logLevel') || 'INFO'],
+    ['Webhook',        val('notifyWebhook') ? '✔ configured' : '—'],
+  ];
+
+  const html = rows.map(([k, v]) => {
+    const isOff = v === 'no' || v === 'none' || v === '—';
+    const isOn  = v === 'yes' || v === 'YES' || v === '✔ configured';
+    const cls   = isOff ? 'off' : isOn ? 'on' : '';
+    return `<div class="info-row"><span class="k">${k}</span><span class="v ${cls}">${v}</span></div>`;
+  }).join('');
+
+  document.getElementById('summaryContent').innerHTML = html;
+}
+
+// ── COPY ──────────────────────────────────────────────────────
+function copyBlock(blockId, btn) {
+  const el = document.getElementById(blockId);
+  const text = el.dataset.plain || el.innerText.replace(/^copy\n/, '');
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'copy'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+// ── DOWNLOAD ──────────────────────────────────────────────────
+function downloadBat() {
+  const el = document.getElementById('cmdOutput');
+  const cmd = el.dataset.plain || '';
+
+  const bat = `@echo off
+title render_bot — Watcher
+echo.
+echo  ╔══════════════════════════════════════════════╗
+echo  ║           render_bot  ^|  Watcher             ║
+echo  ╚══════════════════════════════════════════════╝
+echo.
+echo  Press Ctrl+C to stop.
+echo  ──────────────────────────────────────────────
+echo.
+
+${cmd}
+
+echo.
+echo  [render_bot] Watcher stopped.
+pause
+`;
+
+  download('launch_watcher.bat', bat);
+}
+
+function downloadJson() {
+  const el = document.getElementById('jsonOutput');
+  const json = el.dataset.plain || '{}';
+  download('job_config.json', json);
+}
+
+function download(filename, content) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content], { type: 'text/plain' }));
+  a.download = filename;
+  a.click();
+}
+
+// ── RESET ─────────────────────────────────────────────────────
+function resetAll() {
+  // paths
+  document.getElementById('blender').value = 'blender';
+  document.getElementById('ffmpeg').value = 'ffmpeg';
+  document.getElementById('repoDir').value = '.';
+  document.getElementById('globalConfig').value = '';
+
+  // outputs
+  document.querySelectorAll('#outputChips .chip').forEach(c => {
+    c.classList.toggle('active', c.dataset.val === 'mp4');
+  });
+  document.getElementById('frameFormat').value = 'PNG';
+  document.getElementById('keepFrames').checked = false;
+
+  // git
+  document.getElementById('remote').value = 'origin';
+  document.getElementById('branch').value = '';
+  document.getElementById('pushBranch').value = '';
+  document.getElementById('pullStrategy').value = 'merge';
+  document.getElementById('commitMsg').value = '';
+  document.getElementById('watchPatterns').value = '*.blend *.json';
+  document.getElementById('ignorePatterns').value = '';
+  document.getElementById('noPush').checked = false;
+  document.getElementById('pushOutputsOnly').checked = false;
+
+  // reliability
+  document.getElementById('interval').value = 30;
+  document.getElementById('intervalSlider').value = 30;
+  document.getElementById('maxRetries').value = 3;
+  document.getElementById('retryDelay').value = 10;
+  document.getElementById('maxParallel').value = 1;
+  document.getElementById('jobTimeout').value = '';
+  document.getElementById('lockFile').value = '.render_bot.lock';
+  document.getElementById('stateFile').value = '.render_bot_state.json';
+
+  // flags
+  document.getElementById('fancy').checked = true;
+  document.getElementById('showProgress').checked = false;
+  document.getElementById('summary').checked = false;
+  document.getElementById('dryRun').checked = false;
+  document.getElementById('once').checked = false;
+
+  // scene
+  ['width','height','fps','frameStart','frameEnd','frameStep','samples','threads','scene','camera'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('engine').value = '';
+  document.getElementById('device').value = '';
+
+  // mp4
+  document.getElementById('mp4Crf').value = 18;
+  document.getElementById('mp4CrfSlider').value = 18;
+  document.getElementById('mp4Preset').value = 'medium';
+  document.getElementById('mp4Codec').value = 'libx264';
+  document.getElementById('mp4Fps').value = '';
+  document.getElementById('mp4Audio').value = '';
+  document.getElementById('mp4ExtraArgs').value = '';
+
+  // gif
+  document.getElementById('gifFps').value = 15;
+  document.getElementById('gifWidth').value = 640;
+  document.getElementById('gifLoop').value = 0;
+  document.getElementById('gifDither').value = 'bayer';
+
+  // webm
+  document.getElementById('webmCrf').value = 30;
+  document.getElementById('webmCrfSlider').value = 30;
+  document.getElementById('webmFps').value = '';
+
+  // sprite
+  document.getElementById('spriteCols').value = 8;
+  document.getElementById('spriteScale').value = '';
+
+  // logging
+  document.getElementById('logLevel').value = 'INFO';
+  document.getElementById('logFile').value = '';
+
+  // notify
+  document.getElementById('notifyWebhook').value = '';
+  document.querySelectorAll('.n-chip').forEach(c => {
+    c.classList.toggle('active', c.dataset.val === 'done' || c.dataset.val === 'error');
+  });
+
+  // meta
+  document.getElementById('jobId').value = '';
+  document.getElementById('tags').value = '';
+
+  generate();
+}
+
+// ── LIVE REGEN on any input change ───────────────────────────
+document.querySelectorAll('input, select').forEach(el => {
+  el.addEventListener('change', generate);
+  el.addEventListener('input',  generate);
+});
+
+// ── INIT ─────────────────────────────────────────────────────
+generate();
+</script>
+</body>
+</html>
