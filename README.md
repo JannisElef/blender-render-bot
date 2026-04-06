@@ -1,49 +1,65 @@
 # Blender Render Bot
 
-Remote Blender rendering manager using git. Configure a render job, set defaults and parameters, push it with your .blend source-file and let a remote PC render and push the output back to your git.
+> Remote Blender rendering manager using Git. Drop it next to your repo of `.blend` files, start the **Watcher**, and every push that touches a `.blend` or its matching `.json` job config automatically triggers a headless render - then pushes the outputs back.
 
-You can configure your render job [here](https://janniselef.github.io/blender-render-bot/).
-
----
-
-Drop it next to your repo of `.blend` files, start the **Watcher**, and every push that touches a `.blend` or its matching `.json` job config automatically triggers a headless render - then pushes the outputs back.
-
+🔗 [Web-based job configurator](https://janniselef.github.io/blender-render-bot/) · [Project page](https://janniselef.github.io/projects/blender-render-bot/)
 
 ---
 
-## Requirements
+## Table of Contents
 
-- Python 3.10+
-- [Blender](https://www.blender.org/) (any version with CLI support)
-- [FFmpeg](https://ffmpeg.org/)
-- Git
+1. [Requirements](#1-requirements)
+2. [Quick Start](#2-quick-start)
+3. [How It Works](#3-how-it-works)
+4. [Repository Layout](#4-repository-layout)
+5. [Job Config File (JSON)](#5-job-config-file-json)
+6. [CLI Reference](#6-cli-reference)
+   - [execute](#execute--render-a-single-file)
+   - [watch](#watch--start-the-git-watcher)
+   - [Shared Arguments](#shared-arguments-execute--watch)
+7. [Output Formats](#7-output-formats)
+8. [Summary File](#8-summary-file)
+9. [Notifications](#9-notifications-discord--slack)
+10. [Notes & Tips](#10-notes--tips)
 
 ---
 
-## Quick Start
+## 1. Requirements
+
+| Tool | Version |
+|---|---|
+| Python | 3.10+ |
+| [Blender](https://www.blender.org/) | Any version with CLI support |
+| [FFmpeg](https://ffmpeg.org/) | Current recommended |
+| Git | - |
+
+---
+
+## 2. Quick Start
 
 ```bash
-
-# Start the watcher on a repo with --fancy console output
+# Start the watcher on a repo (polls every 60s, fancy output)
 python render_bot.py watch --repo-dir /path/to/repo --interval 60 --fancy
 
-# Start the watcher with blender not in `PATH`
-python render_bot.py watch --blender "C:\Program Files\Blender Foundation\Blender 5.0\blender.exe" --fancy 
+# Start the watcher when Blender is not in PATH
+python render_bot.py watch --blender "C:\Program Files\Blender Foundation\Blender 5.0\blender.exe" --fancy
 
-# Render a single file right now
+# Render a single file immediately
 python render_bot.py execute my_scene.blend
 
-# Render to MP4 + GIF, GPU, with a colored terminal
+# Render to MP4 + GIF on the GPU with colored output
 python render_bot.py execute my_scene.blend \
     --outputs mp4 gif \
     --device GPU \
     --fancy
 
+# Dry run - print every command without running anything
+python render_bot.py execute my_scene.blend --dry-run --log-level DEBUG
 ```
 
 ---
 
-## How it Works
+## 3. How It Works
 
 ```
 Git Remote
@@ -69,21 +85,23 @@ Git Remote
 └────────────────────────────────────────────────────┘
 ```
 
-**Config priority - lowest to highest:**
+### Config Priority (lowest → highest)
 
 ```
---config global JSON file
-        ↓
+--config  global JSON file
+          ↓
 CLI arguments
-        ↓
-per-job .json file   (execute --json  /  auto-discovered by watcher)
+          ↓
+per-job .json file   (--json  /  auto-discovered by watcher)
+          ↓
+live values from .blend   (fallback for everything unset)
 ```
 
-Any Blender scene parameter left unset at all three levels is read **live from the `.blend`** - no duplicating settings between your file and your config.
+> Any scene parameter left unset at all three levels is read **live from the `.blend`** - no need to duplicate settings between your file and your config.
 
 ---
 
-## Repository Layout
+## 4. Repository Layout
 
 ```
 my-blender-repo/
@@ -108,9 +126,9 @@ The watcher pairs every changed `.blend` with a same-name `.json` if one exists.
 
 ---
 
-## Job Config File (JSON)
+## 5. Job Config File (JSON)
 
-Place a `<blend_stem>.json` next to the `.blend`. All keys are **optional** - omitting a key means the value comes from the `.blend` scene.
+Place a `<blend_stem>.json` next to the `.blend`. **All keys are optional** - omitting a key means the value comes from the `.blend` scene.
 
 ```json
 {
@@ -150,6 +168,9 @@ Place a `<blend_stem>.json` next to the `.blend`. All keys are **optional** - om
     "spritesheet_cols":  8,
     "spritesheet_scale": null,
 
+    "image_format":      "PNG",
+    "image_frame":       null,
+
     "keep_frames":       false,
     "output_dir":        null,
     "output_name":       null,
@@ -163,9 +184,11 @@ Place a `<blend_stem>.json` next to the `.blend`. All keys are **optional** - om
 }
 ```
 
+> A key set to `null` is ignored during config merging - it will not clear a value set at a lower-priority level.
+
 ---
 
-## CLI Reference
+## 6. CLI Reference
 
 ### `execute` - Render a Single File
 
@@ -175,12 +198,12 @@ python render_bot.py execute <blend_file> [options]
 
 | Argument | Default | Description |
 |---|---|---|
-| `blend_file` | *(required)* | Path to the `.blend` file. |
-| `--json PATH` | `None` | Job JSON config (overrides all CLI args for this run). |
-| `--output-dir PATH` | `<stem>_out/` next to `.blend` | Override the output directory. |
-| `--output-name NAME` | *(blend stem)* | Override the base name for generated files. |
+| `blend_file` | *(required)* | Path to the `.blend` file |
+| `--json PATH` | `None` | Job JSON config (overrides all CLI args for this run) |
+| `--output-dir PATH` | `<stem>_out/` next to `.blend` | Override the output directory |
+| `--output-name NAME` | *(blend stem)* | Override the base name for generated files |
 
-All shared arguments below also apply.
+All [shared arguments](#shared-arguments-execute--watch) also apply.
 
 **Examples:**
 
@@ -188,7 +211,7 @@ All shared arguments below also apply.
 # Minimal - all settings from the .blend
 python render_bot.py execute hero_shot.blend --fancy
 
-# GPU render, multiple outputs
+# GPU render, multiple outputs, high quality
 python render_bot.py execute hero_shot.blend \
     --outputs mp4 gif webm \
     --engine CYCLES --device GPU --samples 256 \
@@ -199,8 +222,10 @@ python render_bot.py execute hero_shot.blend \
 # Load everything from a job file
 python render_bot.py execute hero_shot.blend --json hero_shot.json
 
-# Dry run - see every command without running anything
-python render_bot.py execute hero_shot.blend --dry-run --log-level DEBUG
+# Render a single still image (frame 42, WEBP format)
+python render_bot.py execute hero_shot.blend \
+    --outputs image \
+    --image-format WEBP --image-frame 42
 ```
 
 ---
@@ -211,74 +236,73 @@ python render_bot.py execute hero_shot.blend --dry-run --log-level DEBUG
 python render_bot.py watch [options]
 ```
 
-All shared arguments below also apply.
+All [shared arguments](#shared-arguments-execute--watch) also apply.
 
 #### Repository & Git
 
 | Argument | Default | Description |
 |---|---|---|
-| `--repo-dir PATH` | `.` | Path to the Git repository to watch. |
-| `--interval INT` | `30` | Polling interval in seconds. |
-| `--branch NAME` | *(current)* | Only watch this remote branch. |
-| `--remote NAME` | `origin` | Git remote for pull and push. |
-| `--push-branch NAME` | `None` | Push outputs to a different branch (e.g. `renders`). |
-| `--no-push` | `False` | Skip committing and pushing rendered outputs. |
-| `--push-outputs-only` | `False` | Only `git add` output directories, not the whole working tree. |
-| `--git-pull-strategy` | `merge` | `git pull` strategy: `merge`, `rebase`, `ff-only`. |
-| `--commit-message TMPL` | *(auto)* | Commit message template. Placeholders: `{jobs}`, `{files}`, `{date}`. |
+| `--repo-dir PATH` | `.` | Path to the Git repository to watch |
+| `--interval INT` | `30` | Polling interval in seconds |
+| `--branch NAME` | *(current)* | Only watch this specific remote branch |
+| `--remote NAME` | `origin` | Git remote for pull and push |
+| `--push-branch NAME` | `None` | Push outputs to a different branch (e.g. `renders`) |
+| `--no-push` | `False` | Skip committing and pushing rendered outputs |
+| `--push-outputs-only` | `False` | Only `git add` output directories, not the whole working tree |
+| `--git-pull-strategy` | `merge` | Pull strategy: `merge`, `rebase`, `ff-only` |
+| `--commit-message TMPL` | *(auto)* | Commit message template. Placeholders: `{jobs}`, `{files}`, `{date}` |
 
 #### File Detection
 
 | Argument | Default | Description |
 |---|---|---|
-| `--watch-patterns PAT …` | `*.blend *.json` | Glob patterns for files that trigger a render. |
-| `--ignore-patterns PAT …` | `[]` | Glob patterns to exclude even if they match watch patterns. |
+| `--watch-patterns PAT …` | `*.blend *.json` | Glob patterns for files that trigger a render |
+| `--ignore-patterns PAT …` | `[]` | Glob patterns to exclude, even if they match watch patterns |
 
 #### Reliability & Parallelism
 
 | Argument | Default | Description |
 |---|---|---|
-| `--max-retries INT` | `3` | Times to retry a failed job before giving up. |
-| `--retry-delay INT` | `10` | Seconds between retries. |
-| `--job-timeout INT` | `None` | Kill a job after N seconds (`None` = no limit). |
-| `--max-parallel INT` | `1` | Maximum concurrent render jobs. |
-| `--once` | `False` | Check for changes exactly once then exit - useful for CI. |
+| `--max-retries INT` | `3` | Times to retry a failed job before giving up |
+| `--retry-delay INT` | `10` | Seconds between retries |
+| `--job-timeout INT` | `None` | Kill a job after N seconds (`None` = no limit) |
+| `--max-parallel INT` | `1` | Maximum concurrent render jobs |
+| `--once` | `False` | Check for changes exactly once then exit - useful for CI |
 
 #### State & Lock
 
 | Argument | Default | Description |
 |---|---|---|
-| `--lock-file PATH` | `.render_bot.lock` | Prevents duplicate watcher instances. |
-| `--state-file PATH` | `.render_bot_state.json` | Persists last Git hash for crash recovery. |
+| `--lock-file PATH` | `.render_bot.lock` | Path to the lock file (prevents duplicate watcher instances) |
+| `--state-file PATH` | `.render_bot_state.json` | Path to the state file (persists last Git hash for crash recovery) |
+
 ---
 
-### Shared Arguments
-
-These apply to both `execute` and `watch`.
+### Shared Arguments (`execute` + `watch`)
 
 #### Tool Paths
 
 | Argument | Default | Description |
 |---|---|---|
-| `--blender PATH` | `blender` | Path to the Blender executable. |
-| `--ffmpeg PATH` | `ffmpeg` | Path to the FFmpeg executable. |
+| `--blender PATH` | `blender` | Path to the Blender executable |
+| `--ffmpeg PATH` | `ffmpeg` | Path to the FFmpeg executable |
 
 #### Behaviour
 
 | Argument | Default | Description |
 |---|---|---|
-| `--fancy` | `False` | Colored, formatted terminal output with banners and step indicators. Requires a real TTY; log files always stay plain text. |
-| `--dry-run` | `False` | Print all commands but do not run anything. |
-| `--show-progress` | `False` | Stream live stdout/stderr from Blender and FFmpeg. |
-| `--log-level` | `INFO` | Verbosity: `DEBUG`, `INFO`, `WARNING`, `ERROR`. |
-| `--log-file PATH` | `None` | Also write logs to this file (always plain text). |
-| `--config PATH` | `None` | Base-layer JSON config file (lowest priority). |
+| `--fancy` | `False` | Colored, formatted terminal output with banners and step indicators. Requires a real TTY; log files always stay plain text |
+| `--dry-run` | `False` | Print all commands but do not run anything |
+| `--show-progress` | `False` | Stream live stdout/stderr from Blender and FFmpeg |
+| `--log-level LEVEL` | `INFO` | Verbosity: `DEBUG`, `INFO`, `WARNING`, `ERROR` |
+| `--log-file PATH` | `None` | Also write logs to this file (always plain text) |
+| `--config PATH` | `None` | Base-layer global JSON config (lowest priority) |
 
 #### Output Formats
 
 | Argument | Default | Description |
 |---|---|---|
-| `--outputs FORMAT …` | `mp4` | Formats to produce: `mp4`, `gif`, `webm`, `frames`, `spritesheet`. |
+| `--outputs FORMAT …` | `mp4` | Formats to produce: `mp4`, `gif`, `webm`, `frames`, `spritesheet`, `image` |
 
 #### Blender / Scene Overrides
 
@@ -286,91 +310,102 @@ All optional. If not set, the value is read live from the `.blend` scene.
 
 | Argument | Default | Description |
 |---|---|---|
-| `--width INT` | *(from .blend)* | Override render width in pixels. |
-| `--height INT` | *(from .blend)* | Override render height in pixels. |
-| `--fps INT` | *(from .blend)* | Override frame rate. |
-| `--frame-start INT` | *(from .blend)* | First frame to render. |
-| `--frame-end INT` | *(from .blend)* | Last frame to render. |
-| `--frame-step INT` | *(from .blend)* | Render every Nth frame (`2` = every other). |
-| `--scene NAME` | *(from .blend)* | Activate this Blender scene by name. |
-| `--camera NAME` | *(from .blend)* | Use this camera object by name. |
-| `--samples INT` | *(from .blend)* | Override render samples (Cycles / EEVEE). |
-| `--engine ENGINE` | *(from .blend)* | `CYCLES`, `BLENDER_EEVEE_NEXT`, `BLENDER_WORKBENCH`. |
-| `--device DEVICE` | *(from .blend)* | `CPU`, `GPU`, `OPTIX`, `HIP`, `METAL` (Cycles only). |
-| `--threads INT` | *(from .blend)* | CPU thread count (`0` = auto-detect). |
-| `--frame-format FMT` | `PNG` | Intermediate frame format: `PNG`, `EXR`, `JPEG`. |
-| `--extra-python EXPR` | `None` | Python expression run inside Blender after all other overrides. |
-| `--blender-args ARG …` | `[]` | Raw arguments passed directly to the Blender CLI. |
+| `--width INT` | *(from .blend)* | Override render width in pixels |
+| `--height INT` | *(from .blend)* | Override render height in pixels |
+| `--fps INT` | *(from .blend)* | Override frame rate |
+| `--frame-start INT` | *(from .blend)* | First frame to render |
+| `--frame-end INT` | *(from .blend)* | Last frame to render |
+| `--frame-step INT` | *(from .blend)* | Render every Nth frame (`2` = every other) |
+| `--scene NAME` | *(from .blend)* | Activate this Blender scene by name |
+| `--camera NAME` | *(from .blend)* | Use this camera object by name |
+| `--samples INT` | *(from .blend)* | Override render samples (Cycles / EEVEE) |
+| `--engine ENGINE` | *(from .blend)* | `CYCLES`, `BLENDER_EEVEE_NEXT`, `BLENDER_WORKBENCH` |
+| `--device DEVICE` | *(from .blend)* | `CPU`, `GPU`, `OPTIX`, `HIP`, `METAL` (Cycles only) |
+| `--threads INT` | *(from .blend)* | CPU thread count (`0` = auto-detect) |
+| `--frame-format FMT` | `PNG` | Intermediate frame format: `PNG`, `EXR`, `JPEG` |
+| `--extra-python EXPR` | `None` | Python expression run inside Blender after all other overrides |
+| `--blender-args ARG …` | `[]` | Raw arguments passed directly to the Blender CLI |
 
 #### MP4
 
 | Argument | Default | Description |
 |---|---|---|
-| `--mp4-crf INT` | `18` | Quality (CRF). `0` = lossless, `51` = worst. |
-| `--mp4-preset PRESET` | `medium` | x264/x265 speed preset: `ultrafast` … `veryslow`. |
-| `--mp4-fps INT` | *(from --fps / .blend)* | Override MP4 frame rate. |
-| `--mp4-codec CODEC` | `libx264` | `libx264`, `libx265`, `libvpx-vp9`. |
-| `--mp4-audio PATH` | `None` | Audio file to mux into the MP4. |
-| `--mp4-extra-args ARG …` | `[]` | Extra raw FFmpeg arguments for the MP4 pass. |
+| `--mp4-crf INT` | `18` | Quality (CRF). `0` = lossless, `51` = worst |
+| `--mp4-preset PRESET` | `medium` | x264/x265 encoding speed preset: `ultrafast`, `superfast`, `veryfast`, `faster`, `fast`, `medium`, `slow`, `slower`, `veryslow` |
+| `--mp4-fps INT` | *(from --fps / .blend)* | Override MP4 frame rate |
+| `--mp4-codec CODEC` | `libx264` | `libx264`, `libx265`, `libvpx-vp9` |
+| `--mp4-audio PATH` | `None` | Audio file to mux into the MP4 |
+| `--mp4-extra-args ARG …` | `[]` | Extra raw FFmpeg arguments for the MP4 pass |
 
 #### GIF
 
 | Argument | Default | Description |
 |---|---|---|
-| `--gif-fps INT` | `15` | GIF frame rate. |
-| `--gif-width INT` | `640` | Output width in pixels (`-1` = keep original). |
-| `--gif-loop INT` | `0` | Loop count (`0` = infinite). |
-| `--gif-dither METHOD` | `bayer` | `bayer`, `floyd_steinberg`, `none`. |
+| `--gif-fps INT` | `15` | GIF frame rate |
+| `--gif-width INT` | `640` | Output width in pixels (`-1` = keep original) |
+| `--gif-loop INT` | `0` | Loop count (`0` = infinite) |
+| `--gif-dither METHOD` | `bayer` | Dithering algorithm: `bayer`, `floyd_steinberg`, `none` |
 
 #### WebM
 
 | Argument | Default | Description |
 |---|---|---|
-| `--webm-crf INT` | `30` | VP9 quality (CRF). |
-| `--webm-fps INT` | *(from --fps / .blend)* | Override WebM frame rate. |
+| `--webm-crf INT` | `30` | VP9 quality (CRF) |
+| `--webm-fps INT` | *(from --fps / .blend)* | Override WebM frame rate |
 
 #### Spritesheet
 
 | Argument | Default | Description |
 |---|---|---|
-| `--spritesheet-cols INT` | `8` | Columns in the spritesheet grid. |
-| `--spritesheet-scale INT` | `None` | Width of each frame tile in pixels. |
+| `--spritesheet-cols INT` | `8` | Columns in the spritesheet grid |
+| `--spritesheet-scale INT` | `None` | Width of each frame tile in pixels (`None` = original) |
+
+#### Image (Single Still)
+
+| Argument | Default | Description |
+|---|---|---|
+| `--image-format FMT` | `PNG` | Output format: `PNG`, `JPEG`, `EXR`, `TIFF`, `BMP`, `WEBP` |
+| `--image-frame INT` | *(frame_start / .blend)* | Which frame to render as a still image |
 
 #### Frames & Metadata
 
 | Argument | Default | Description |
 |---|---|---|
-| `--keep-frames` | `False` | Keep intermediate frames (PNG / EXR / JPEG, matching `--frame-format`) after post-processing. Implied when `frames` is in `--outputs`. |
-| `--job-id ID` | `None` | Identifier included in the summary and webhook payloads. |
-| `--tags TAG …` | `[]` | Labels stored in `summary.json`. |
-| `--summary` | `False` | Write `summary.json` to the output directory. |
+| `--keep-frames` | `False` | Keep intermediate frames (PNG / EXR / JPEG) after post-processing. Implied when `frames` is in `--outputs` |
+| `--job-id ID` | `None` | Identifier included in the summary and webhook payloads |
+| `--tags TAG …` | `[]` | Labels stored in `summary.json` |
+| `--summary` | `False` | Write `summary.json` to the output directory |
 
 #### Notifications
 
 | Argument | Default | Description |
 |---|---|---|
-| `--notify-webhook URL` | `None` | Webhook endpoint (Discord / Slack compatible). |
-| `--notify-on EVENT …` | `error done` | Events: `start`, `done`, `error`, `retry`. |
+| `--notify-webhook URL` | `None` | Webhook endpoint (Discord / Slack compatible) |
+| `--notify-on EVENT …` | `error done` | Events that trigger a notification: `start`, `done`, `error`, `retry` |
 
 ---
 
-## Output Formats
+## 7. Output Formats
 
 Pass one or more to `--outputs` (or `"outputs"` in JSON):
 
 | Format | Description |
 |---|---|
-| `mp4` | H.264 / H.265 / VP9 video via FFmpeg. |
-| `gif` | Palette-optimised GIF with configurable dithering. |
-| `webm` | VP9 WebM - supports alpha channel. |
-| `frames` | Keep the individual rendered frames (PNG / EXR / JPEG). Implies `--keep-frames`. |
-| `spritesheet` | Single tiled PNG of all frames - useful for game assets. |
+| `mp4` | H.264 / H.265 / VP9 video via FFmpeg |
+| `gif` | Palette-optimised animated GIF with configurable dithering |
+| `webm` | VP9 WebM - supports alpha channel |
+| `frames` | Keep individual rendered frames (PNG / EXR / JPEG, matching `--frame-format`). Implies `--keep-frames` |
+| `spritesheet` | Single tiled PNG of all frames - useful for game assets |
+| `image` | Render a single still frame to PNG / JPEG / EXR / TIFF / BMP / WEBP |
 
-Multiple formats at once: `--outputs mp4 gif spritesheet`
+```bash
+# Multiple formats at once
+python render_bot.py execute my_scene.blend --outputs mp4 gif spritesheet
+```
 
 ---
 
-## Summary File
+## 8. Summary File
 
 Written to the output directory when `--summary` is set. All paths are relative to the script's own directory.
 
@@ -405,7 +440,7 @@ Written to the output directory when `--summary` is set. All paths are relative 
 
 ---
 
-## Notifications (Discord / Slack)
+## 9. Notifications (Discord / Slack)
 
 ```bash
 python render_bot.py watch \
@@ -415,21 +450,27 @@ python render_bot.py watch \
 
 | Event | Fires when |
 |---|---|
-| `start` | A render job begins. |
-| `done` | A render job completes successfully. |
-| `error` | A job fails all retries. |
-| `retry` | A job fails but has retries remaining. |
+| `start` | A render job begins |
+| `done` | A render job completes successfully |
+| `error` | A job fails all retries |
+| `retry` | A job fails but has retries remaining |
 
 ---
 
-## Notes
+## 10. Notes & Tips
 
-- **Lock file** - on startup the watcher writes `.render_bot.lock` with its PID and removes it on exit. Stale locks (dead PID) are cleared automatically.
-- **State file** - `.render_bot_state.json` persists the last processed Git hash. A restarted watcher continues from where it left off instead of skipping commits.
-- **Blend defaults query** - Blender is launched once in a lightweight Python-only mode before the actual render to read any unset scene values. This adds a few seconds per job but means zero duplicated config.
-- **`--fancy` + `--log-file`** - color codes appear only in the terminal stream; the log file always receives plain text regardless.
-- **`--dry-run` + `--log-level DEBUG`** - prints every command that would run, including the full Blender Python expression, without touching the filesystem or spawning any processes.
-- **`null` in JSON** - a key set to `null` is ignored during config merging; it will not clear a value set at a lower priority level.
+- **Lock file** - On startup the watcher writes `.render_bot.lock` with its PID and removes it on exit. Stale locks from dead processes are cleared automatically.
 
+- **State file** - `.render_bot_state.json` persists the last processed Git hash. A restarted watcher picks up from where it left off instead of skipping commits.
 
-See more information [here](https://janniselef.github.io/projects/blender-render-bot/).
+- **Blend defaults query** - Blender is launched once in a lightweight Python-only mode before the actual render to read any unset scene values. This adds a few seconds per job but eliminates duplicated config.
+
+- **`--fancy` + `--log-file`** - Color codes appear only in the terminal stream; the log file always receives plain text regardless.
+
+- **`--dry-run` + `--log-level DEBUG`** - Prints every command that would run, including the full Blender Python expression, without touching the filesystem or spawning any processes.
+
+- **`null` in JSON** - A key set to `null` is ignored during config merging; it will not clear a value set at a lower-priority level.
+
+- **`image` output** - Unlike the other formats, `image` bypasses the frame sequence entirely and calls `bpy.ops.render.render(write_still=True)` directly for the target frame. Use `--image-frame` to pick a specific frame; defaults to `frame_start` or the `.blend` value.
+
+- **`--max-parallel`** - When set above `1`, jobs are dispatched as threads. Each thread runs its own Executor independently; results are merged before the final git push.
