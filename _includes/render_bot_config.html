@@ -2,1758 +2,1133 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Blender Render Bot Config</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  /* ── RESET & BASE ─────────────────────────────────────────── */
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-  :root {
-    --bg:        #0c0e10;
-    --bg2:       #111417;
-    --bg3:       #181c20;
-    --border:    #23282e;
-    --border2:   #2e3540;
-    --text:      #c8d0da;
-    --text-dim:  #5a6472;
-    --text-faint:#333c46;
-    --accent:    #e8a020;
-    --accent2:   #f0c060;
-    --green:     #3ec97a;
-    --red:       #e05050;
-    --blue:      #4a90d9;
-    --purple:    #9b6ee8;
-    --mono:      'IBM Plex Mono', monospace;
-    --display:   'Inter', sans-serif;
-  }
-
-  html { font-size: 13px; scroll-behavior: smooth; }
-
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--mono);
-    line-height: 1.6;
-    min-height: 100vh;
-  }
-
-  /* ── SCANLINE OVERLAY ─────────────────────────────────────── */
-  body::before {
-    content: '';
-    position: fixed; inset: 0;
-    background: repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 2px,
-      rgba(0,0,0,.04) 2px,
-      rgba(0,0,0,.04) 4px
-    );
-    pointer-events: none;
-    z-index: 999;
-  }
-
-  /* ── LAYOUT ───────────────────────────────────────────────── */
-  .shell {
-    display: grid;
-    grid-template-columns: 220px 1fr 340px;
-    grid-template-rows: 52px 1fr;
-    height: 100vh;
-    overflow: hidden;
-  }
-
-  /* ── TOPBAR ───────────────────────────────────────────────── */
-  .topbar {
-    grid-column: 1 / -1;
-    background: var(--bg2);
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    padding: 0 20px;
-    gap: 16px;
-  }
-
-  .topbar-logo {
-    font-family: var(--mono);
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--text);
-    letter-spacing: 0;
-  }
-
-  .topbar-logo span { color: var(--accent); font-weight: 400; }
-
-  .topbar-tag {
-    font-size: 10px;
-    color: var(--text-dim);
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    padding: 2px 7px;
-    letter-spacing: .08em;
-    text-transform: uppercase;
-  }
-
-  .topbar-right {
-    margin-left: auto;
-    display: flex;
-    gap: 10px;
-    align-items: center;
-  }
-
-  /* ── SIDEBAR ──────────────────────────────────────────────── */
-  .sidebar {
-    background: var(--bg2);
-    border-right: 1px solid var(--border);
-    padding: 16px 0;
-    overflow-y: auto;
-  }
-
-  .nav-section {
-    padding: 8px 16px 4px;
-    font-size: 9px;
-    letter-spacing: .12em;
-    text-transform: uppercase;
-    color: var(--text-faint);
-  }
-
-  .nav-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 7px 16px;
-    font-size: 12px;
-    color: var(--text-dim);
-    cursor: pointer;
-    border-left: 2px solid transparent;
-    transition: all .15s;
-  }
-
-  .nav-item:hover { color: var(--text); background: rgba(255,255,255,.03); }
-  .nav-item.active {
-    color: var(--accent);
-    border-left-color: var(--accent);
-    background: rgba(232,160,32,.06);
-  }
-
-  .nav-item .icon {
-    width: 14px;
-    text-align: center;
-    opacity: .6;
-  }
-  .nav-item.active .icon { opacity: 1; }
-
-  .nav-divider {
-    margin: 8px 16px;
-    border: none;
-    border-top: 1px solid var(--border);
-  }
-
-  /* ── MAIN CONTENT ─────────────────────────────────────────── */
-  .main {
-    overflow-y: auto;
-    padding: 24px 28px;
-  }
-
-  /* ── OUTPUT PANEL ─────────────────────────────────────────── */
-  .output-panel {
-    background: var(--bg2);
-    border-left: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-  }
-
-  .panel-header {
-    padding: 14px 16px;
-    border-bottom: 1px solid var(--border);
-    font-size: 10px;
-    letter-spacing: .1em;
-    text-transform: uppercase;
-    color: var(--text-dim);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .panel-tabs {
-    display: flex;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .panel-tab {
-    flex: 1;
-    padding: 10px;
-    font-family: var(--mono);
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: .08em;
-    color: var(--text-dim);
-    background: none;
-    border: none;
-    border-bottom: 2px solid transparent;
-    cursor: pointer;
-    transition: all .15s;
-  }
-
-  .panel-tab.active {
-    color: var(--accent);
-    border-bottom-color: var(--accent);
-  }
-
-  .panel-tab:hover:not(.active) { color: var(--text); }
-
-  .panel-body {
-    flex: 1;
-    overflow-y: auto;
-    padding: 14px;
-  }
-
-  .tab-content { display: none; }
-  .tab-content.active { display: block; }
-
-  /* ── SECTION GROUPS ───────────────────────────────────────── */
-  .section {
-    display: none;
-    animation: fadeIn .2s ease;
-  }
-  .section.active { display: block; }
-
-  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
-
-  .section-title {
-    font-family: var(--display);
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--text);
-    margin-bottom: 4px;
-    letter-spacing: -0.01em;
-  }
-
-  .section-sub {
-    font-size: 11px;
-    color: var(--text-dim);
-    margin-bottom: 24px;
-  }
-
-  .group {
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    margin-bottom: 16px;
-    overflow: hidden;
-  }
-
-  .group-header {
-    padding: 10px 16px;
-    background: var(--bg3);
-    border-bottom: 1px solid var(--border);
-    font-size: 10px;
-    letter-spacing: .1em;
-    text-transform: uppercase;
-    color: var(--accent);
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .group-body {
-    padding: 14px 16px;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px 20px;
-  }
-
-  .group-body.cols-1 { grid-template-columns: 1fr; }
-  .group-body.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
-
-  /* ── FORM FIELDS ──────────────────────────────────────────── */
-  .field { display: flex; flex-direction: column; gap: 5px; }
-  .field.full { grid-column: 1 / -1; }
-
-  label {
-    font-size: 10px;
-    color: var(--text-dim);
-    letter-spacing: .06em;
-    text-transform: uppercase;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  label .badge {
-    font-size: 8px;
-    padding: 1px 5px;
-    border-radius: 3px;
-    letter-spacing: .04em;
-    text-transform: uppercase;
-  }
-  .badge-blend { background: rgba(74,144,217,.15); color: var(--blue); border: 1px solid rgba(74,144,217,.3); }
-  .badge-opt   { background: rgba(90,100,114,.15); color: var(--text-dim); border: 1px solid var(--border); }
-
-  input[type="text"],
-  input[type="number"],
-  select {
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    color: var(--text);
-    font-family: var(--mono);
-    font-size: 12px;
-    padding: 7px 10px;
-    outline: none;
-    transition: border-color .15s;
-    width: 100%;
-    appearance: none;
-  }
-
-  input:focus, select:focus { border-color: var(--accent); }
-
-  input::placeholder { color: var(--text-faint); }
-
-  select {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%235a6472'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 10px center;
-    padding-right: 28px;
-    cursor: pointer;
-  }
-
-  /* ── TOGGLE SWITCH ────────────────────────────────────────── */
-  .toggle-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px 0;
-    border-bottom: 1px solid var(--border);
-  }
-  .toggle-row:last-child { border-bottom: none; }
-
-  .toggle-label {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-
-  .toggle-label .name {
-    font-size: 12px;
-    color: var(--text);
-  }
-
-  .toggle-label .desc {
-    font-size: 10px;
-    color: var(--text-dim);
-  }
-
-  .switch {
-    position: relative;
-    width: 36px;
-    height: 20px;
-    flex-shrink: 0;
-  }
-
-  .switch input { opacity: 0; width: 0; height: 0; }
-
-  .switch-track {
-    position: absolute;
-    inset: 0;
-    background: var(--border2);
-    border-radius: 20px;
-    cursor: pointer;
-    transition: background .2s;
-  }
-
-  .switch-track::after {
-    content: '';
-    position: absolute;
-    left: 3px;
-    top: 3px;
-    width: 14px;
-    height: 14px;
-    background: var(--text-dim);
-    border-radius: 50%;
-    transition: transform .2s, background .2s;
-  }
-
-  .switch input:checked + .switch-track { background: rgba(232,160,32,.3); }
-  .switch input:checked + .switch-track::after {
-    transform: translateX(16px);
-    background: var(--accent);
-  }
-
-  /* ── OUTPUT FORMAT CHIPS ──────────────────────────────────── */
-  .chip-group {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-top: 4px;
-  }
-
-  .chip {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 5px 12px;
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    background: var(--bg);
-    cursor: pointer;
-    transition: all .15s;
-    user-select: none;
-    font-size: 11px;
-    color: var(--text-dim);
-  }
-
-  .chip:hover { border-color: var(--border2); color: var(--text); }
-
-  .chip.active {
-    border-color: var(--accent);
-    background: rgba(232,160,32,.08);
-    color: var(--accent);
-  }
-
-  .chip-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: currentColor;
-    opacity: .5;
-  }
-  .chip.active .chip-dot { opacity: 1; }
-
-  /* ── NOTIFY EVENTS ────────────────────────────────────────── */
-  .notify-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
-
-  .n-chip {
-    padding: 4px 10px;
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    background: var(--bg);
-    font-size: 10px;
-    cursor: pointer;
-    color: var(--text-dim);
-    transition: all .15s;
-    text-transform: uppercase;
-    letter-spacing: .06em;
-  }
-
-  .n-chip:hover { color: var(--text); border-color: var(--border2); }
-  .n-chip.active { border-color: var(--green); color: var(--green); background: rgba(62,201,122,.08); }
-
-  /* ── RANGE SLIDER ─────────────────────────────────────────── */
-  .slider-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  input[type="range"] {
-    flex: 1;
-    appearance: none;
-    height: 3px;
-    background: var(--border2);
-    border-radius: 2px;
-    outline: none;
-    cursor: pointer;
-    border: none;
-    padding: 0;
-  }
-
-  input[type="range"]::-webkit-slider-thumb {
-    appearance: none;
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-    background: var(--accent);
-    cursor: pointer;
-    box-shadow: 0 0 0 3px rgba(232,160,32,.15);
-  }
-
-  .slider-val {
-    min-width: 36px;
-    text-align: right;
-    font-size: 12px;
-    color: var(--accent);
-  }
-
-  /* ── BUTTONS ──────────────────────────────────────────────── */
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    padding: 8px 16px;
-    border-radius: 4px;
-    font-family: var(--mono);
-    font-size: 11px;
-    font-weight: 500;
-    border: 1px solid;
-    cursor: pointer;
-    transition: all .15s;
-    text-transform: uppercase;
-    letter-spacing: .06em;
-  }
-
-  .btn-primary {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: #0c0e10;
-  }
-  .btn-primary:hover { background: var(--accent2); border-color: var(--accent2); }
-
-  .btn-ghost {
-    background: transparent;
-    border-color: var(--border2);
-    color: var(--text-dim);
-  }
-  .btn-ghost:hover { border-color: var(--text-dim); color: var(--text); }
-
-  .btn-danger {
-    background: transparent;
-    border-color: rgba(224,80,80,.4);
-    color: var(--red);
-  }
-  .btn-danger:hover { background: rgba(224,80,80,.1); }
-
-  /* ── CODE OUTPUT ──────────────────────────────────────────── */
-  .code-block {
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 14px;
-    font-size: 11px;
-    line-height: 1.8;
-    white-space: pre-wrap;
-    word-break: break-all;
-    color: var(--text);
-    min-height: 60px;
-    position: relative;
-  }
-
-  .code-block .kw  { color: var(--accent); }
-  .code-block .val { color: var(--green); }
-  .code-block .flag { color: var(--purple); }
-  .code-block .path { color: var(--blue); }
-  .code-block .comment { color: var(--text-faint); }
-
-  .copy-btn {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    padding: 4px 10px;
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    font-family: var(--mono);
-    font-size: 9px;
-    color: var(--text-dim);
-    cursor: pointer;
-    text-transform: uppercase;
-    letter-spacing: .06em;
-    transition: all .15s;
-  }
-  .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
-  .copy-btn.copied { color: var(--green); border-color: var(--green); }
-
-  /* ── JSON OUTPUT ──────────────────────────────────────────── */
-  .json-key   { color: var(--blue); }
-  .json-str   { color: var(--green); }
-  .json-num   { color: var(--accent); }
-  .json-bool  { color: var(--purple); }
-  .json-null  { color: var(--text-faint); }
-  .json-arr   { color: var(--text); }
-
-  /* ── STATUS DOT ───────────────────────────────────────────── */
-  .status-dot {
-    width: 7px; height: 7px;
-    border-radius: 50%;
-    background: var(--accent);
-    box-shadow: 0 0 6px var(--accent);
-    animation: pulse 2s ease-in-out infinite;
-    flex-shrink: 0;
-  }
-  @keyframes pulse {
-    0%,100% { opacity: 1; }
-    50% { opacity: .4; }
-  }
-
-  /* ── SCROLLBAR ────────────────────────────────────────────── */
-  ::-webkit-scrollbar { width: 4px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
-  ::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
-
-  /* ── LAUNCH BAR ───────────────────────────────────────────── */
-  .launch-bar {
-    padding: 12px 16px;
-    border-top: 1px solid var(--border);
-    background: var(--bg3);
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .launch-bar-label {
-    font-size: 9px;
-    text-transform: uppercase;
-    letter-spacing: .1em;
-    color: var(--text-faint);
-  }
-
-  /* ── MISC ─────────────────────────────────────────────────── */
-  .info-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 6px 0;
-    border-bottom: 1px solid var(--border);
-    font-size: 11px;
-  }
-  .info-row:last-child { border-bottom: none; }
-  .info-row .k { color: var(--text-dim); }
-  .info-row .v { color: var(--text); font-weight: 500; }
-  .info-row .v.on  { color: var(--green); }
-  .info-row .v.off { color: var(--text-faint); }
-
-  .tag { display: inline-flex; align-items: center; gap: 4px; }
-  .tag-dot { width: 5px; height: 5px; border-radius: 50%; }
-
-  input[type=number]::-webkit-inner-spin-button { opacity: .4; }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0c0e10;--bg2:#111417;--bg3:#181c20;
+  --border:#23282e;--border2:#2e3540;
+  --text:#c8d0da;--text-dim:#5a6472;--text-faint:#2e3540;
+  --accent:#e8a020;--accent2:#f0c060;
+  --green:#3ec97a;--red:#e05050;--blue:#4a90d9;--purple:#9b6ee8;
+  --mono:'IBM Plex Mono',monospace;--sans:'Inter',sans-serif;
+  --topbar-h:50px;--sidebar-w:195px;--panel-w:310px;
+}
+html{font-size:13px;scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);line-height:1.6;height:100dvh;overflow:hidden}
+
+/* ── DESKTOP SHELL ── */
+.shell{display:grid;grid-template-columns:var(--sidebar-w) 1fr var(--panel-w);grid-template-rows:var(--topbar-h) 1fr;height:100dvh}
+.topbar{grid-column:1/-1;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:12px;flex-shrink:0;z-index:10}
+.topbar-logo{font-family:var(--sans);font-size:14px;font-weight:600;color:var(--text);letter-spacing:-.01em;white-space:nowrap}
+.topbar-logo span{color:var(--accent)}
+.topbar-sub{font-size:11px;color:var(--text-dim)}
+.topbar-right{margin-left:auto;display:flex;gap:8px;align-items:center}
+.sidebar{background:var(--bg2);border-right:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column}
+.main{overflow-y:auto;padding:20px 22px}
+.output-panel{background:var(--bg2);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+
+/* ── MOBILE BOTTOM NAV ── */
+.mobile-nav{display:none}
+.mobile-output-toggle{display:none}
+
+/* ── NAV ── */
+.nav-section{padding:10px 14px 3px;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-faint)}
+.nav-item{display:flex;align-items:center;gap:8px;padding:7px 14px;font-size:12px;color:var(--text-dim);cursor:pointer;border-left:2px solid transparent;transition:all .12s;user-select:none}
+.nav-item:hover{color:var(--text);background:rgba(255,255,255,.03)}
+.nav-item.active{color:var(--accent);border-left-color:var(--accent);background:rgba(232,160,32,.06)}
+.nav-item .icon{width:13px;text-align:center;font-size:11px;opacity:.6}
+.nav-item.active .icon{opacity:1}
+.nav-divider{margin:6px 14px;border:none;border-top:1px solid var(--border)}
+
+/* ── UPLOAD ZONE ── */
+.upload-zone{margin:10px 14px 6px;border:1px dashed var(--border2);border-radius:5px;padding:10px 12px;cursor:pointer;transition:all .15s;text-align:center}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--accent);background:rgba(232,160,32,.05)}
+.upload-zone input{display:none}
+.upload-zone-label{font-size:10px;color:var(--text-dim);line-height:1.5}
+.upload-zone-label strong{color:var(--accent);display:block;margin-bottom:2px}
+.upload-zone-label small{color:var(--text-faint)}
+.upload-feedback{font-size:10px;margin:4px 14px 0;color:var(--green);min-height:14px}
+
+/* ── SECTIONS ── */
+.section{display:none;animation:fadeIn .15s ease}
+.section.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+.section-title{font-family:var(--sans);font-size:15px;font-weight:600;color:var(--text);margin-bottom:3px;letter-spacing:-.01em}
+.section-sub{font-size:11px;color:var(--text-dim);margin-bottom:18px;line-height:1.5}
+.section-sub code{background:var(--bg3);padding:1px 5px;border-radius:3px;font-size:10px}
+
+/* ── GROUPS ── */
+.group{background:var(--bg2);border:1px solid var(--border);border-radius:5px;margin-bottom:14px;overflow:hidden}
+.group-header{padding:8px 14px;background:var(--bg3);border-bottom:1px solid var(--border);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);display:flex;align-items:center;gap:6px}
+.group-body{padding:12px 14px;display:grid;grid-template-columns:1fr 1fr;gap:10px 18px}
+.group-body.cols-1{grid-template-columns:1fr}
+.group-body.cols-3{grid-template-columns:1fr 1fr 1fr}
+
+/* ── FIELDS ── */
+.field{display:flex;flex-direction:column;gap:5px}
+.field.full{grid-column:1/-1}
+label{font-size:10px;color:var(--text-dim);letter-spacing:.05em;text-transform:uppercase;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.badge{font-size:8px;padding:1px 5px;border-radius:3px;letter-spacing:.04em;text-transform:uppercase}
+.badge-blend{background:rgba(74,144,217,.12);color:var(--blue);border:1px solid rgba(74,144,217,.25)}
+.badge-opt{background:rgba(90,100,114,.12);color:var(--text-dim);border:1px solid var(--border)}
+input[type="text"],input[type="number"],select{background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:var(--mono);font-size:12px;padding:7px 10px;outline:none;transition:border-color .12s;width:100%;appearance:none;-webkit-appearance:none}
+input:focus,select:focus{border-color:var(--accent)}
+input::placeholder{color:var(--text-faint)}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%235a6472'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:26px;cursor:pointer}
+input[type=number]::-webkit-inner-spin-button{opacity:.4}
+
+/* ── TOGGLE ── */
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);gap:12px}
+.toggle-row:last-child{border-bottom:none}
+.toggle-label{display:flex;flex-direction:column;gap:2px;min-width:0}
+.toggle-label .name{font-size:12px;color:var(--text)}
+.toggle-label .desc{font-size:10px;color:var(--text-dim);line-height:1.4}
+.switch{position:relative;width:34px;height:19px;flex-shrink:0}
+.switch input{opacity:0;width:0;height:0;position:absolute}
+.switch-track{position:absolute;inset:0;background:var(--border2);border-radius:20px;cursor:pointer;transition:background .2s}
+.switch-track::after{content:'';position:absolute;left:3px;top:3px;width:13px;height:13px;background:var(--text-dim);border-radius:50%;transition:transform .2s,background .2s}
+.switch input:checked+.switch-track{background:rgba(232,160,32,.28)}
+.switch input:checked+.switch-track::after{transform:translateX(15px);background:var(--accent)}
+
+/* ── CHIPS ── */
+.chip-group{display:flex;flex-wrap:wrap;gap:7px;margin-top:3px}
+.chip{display:flex;align-items:center;gap:5px;padding:5px 11px;border:1px solid var(--border);border-radius:4px;background:var(--bg);cursor:pointer;transition:all .12s;user-select:none;font-size:11px;color:var(--text-dim)}
+.chip:hover{border-color:var(--border2);color:var(--text)}
+.chip.active{border-color:var(--accent);background:rgba(232,160,32,.07);color:var(--accent)}
+.chip-dot{width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.5;flex-shrink:0}
+.chip.active .chip-dot{opacity:1}
+.notify-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.n-chip{padding:4px 9px;border:1px solid var(--border);border-radius:3px;background:var(--bg);font-size:10px;cursor:pointer;color:var(--text-dim);transition:all .12s;text-transform:uppercase;letter-spacing:.05em;user-select:none}
+.n-chip:hover{color:var(--text);border-color:var(--border2)}
+.n-chip.active{border-color:var(--green);color:var(--green);background:rgba(62,201,122,.07)}
+
+/* ── SLIDER ── */
+.slider-row{display:flex;align-items:center;gap:10px}
+input[type="range"]{flex:1;appearance:none;-webkit-appearance:none;height:3px;background:var(--border2);border-radius:2px;outline:none;cursor:pointer;border:none;padding:0;min-width:0}
+input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--accent);cursor:pointer}
+.slider-val{min-width:34px;text-align:right;font-size:12px;color:var(--accent)}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 14px;border-radius:4px;font-family:var(--mono);font-size:11px;font-weight:500;border:1px solid;cursor:pointer;transition:all .12s;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:#0c0e10}
+.btn-primary:hover{background:var(--accent2);border-color:var(--accent2)}
+.btn-ghost{background:transparent;border-color:var(--border2);color:var(--text-dim)}
+.btn-ghost:hover{border-color:var(--text-dim);color:var(--text)}
+
+/* ── OUTPUT PANEL ── */
+.panel-header{padding:12px 14px;border-bottom:1px solid var(--border);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);display:flex;align-items:center;gap:8px;flex-shrink:0}
+.status-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 5px var(--accent);animation:pulse 2s ease-in-out infinite;flex-shrink:0}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.panel-tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0}
+.panel-tab{flex:1;padding:9px 6px;font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--text-dim);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;transition:all .12s}
+.panel-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.panel-tab:hover:not(.active){color:var(--text)}
+.panel-body{flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.tab-content{display:none;flex-direction:column;gap:10px}
+.tab-content.active{display:flex}
+
+/* ── CODE BLOCK ── */
+.code-block{background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:12px;font-size:11px;line-height:1.8;white-space:pre-wrap;word-break:break-all;color:var(--text);position:relative;min-height:50px}
+.code-block .kw{color:var(--accent)}
+.code-block .flag{color:var(--purple)}
+.code-block .path{color:var(--blue)}
+.code-block .comment{color:var(--text-faint)}
+.copy-btn{position:absolute;top:7px;right:7px;padding:3px 9px;background:var(--bg3);border:1px solid var(--border);border-radius:3px;font-family:var(--mono);font-size:9px;color:var(--text-dim);cursor:pointer;text-transform:uppercase;letter-spacing:.05em;transition:all .12s}
+.copy-btn:hover{border-color:var(--accent);color:var(--accent)}
+.copy-btn.copied{color:var(--green);border-color:var(--green)}
+
+/* ── ONELINE TOGGLE ROW ── */
+.oneline-row{display:flex;align-items:center;gap:8px;font-size:10px;color:var(--text-dim)}
+.oneline-row label{text-transform:none;letter-spacing:0;font-size:10px;cursor:pointer;display:flex;align-items:center;gap:6px}
+.oneline-row input[type=checkbox]{width:13px;height:13px;accent-color:var(--accent);cursor:pointer;flex-shrink:0}
+
+/* ── JSON HIGHLIGHT ── */
+.json-key{color:var(--blue)}.json-str{color:var(--green)}.json-num{color:var(--accent)}.json-bool{color:var(--purple)}.json-null{color:var(--text-faint)}
+
+/* ── SUMMARY ── */
+.info-row{display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;border-bottom:1px solid var(--border);font-size:11px;gap:8px}
+.info-row:last-child{border-bottom:none}
+.info-row .k{color:var(--text-dim);flex-shrink:0}
+.info-row .v{color:var(--text);font-weight:500;text-align:right;word-break:break-all}
+.info-row .v.on{color:var(--green)}.info-row .v.off{color:var(--text-faint)}
+
+/* ── LAUNCH BAR ── */
+.launch-bar{padding:10px 14px;border-top:1px solid var(--border);background:var(--bg3);display:flex;flex-direction:column;gap:7px;flex-shrink:0}
+.launch-bar-label{font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--text-faint)}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+
+/* ── MOBILE ──────────────────────────────────────────────────
+   Stack: topbar / content (nav drawer + main) / output panel toggle */
+@media(max-width:768px){
+  body{overflow:auto}
+  .shell{display:flex;flex-direction:column;height:auto;min-height:100dvh}
+  .topbar{position:sticky;top:0;z-index:100;padding:0 12px;gap:8px}
+  .topbar-dl{font-size:10px;color:var(--text-dim);background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:3px 9px;text-decoration:none;white-space:nowrap;transition:all .12s;letter-spacing:.04em}
+  .topbar-dl:hover{color:var(--accent);border-color:var(--accent)}
+  .topbar-sub{display:none}
+  .topbar-right .btn{padding:6px 10px;font-size:10px}
+
+  /* sidebar becomes horizontal scrollable pill nav */
+  .sidebar{border-right:none;border-bottom:1px solid var(--border);overflow-x:auto;overflow-y:hidden;flex-direction:row;flex-wrap:nowrap;padding:8px 10px;gap:4px;flex-shrink:0}
+  .nav-section{display:none}
+  .nav-divider{display:none}
+  .nav-item{border-left:none;border-bottom:2px solid transparent;border-radius:4px;padding:5px 11px;font-size:11px;white-space:nowrap;flex-shrink:0}
+  .nav-item.active{border-bottom-color:var(--accent);background:rgba(232,160,32,.07)}
+  .nav-item .icon{display:none}
+  .upload-zone{margin:0;border-radius:4px;padding:5px 10px;white-space:nowrap;flex-shrink:0;text-align:left}
+  .upload-zone-label strong{display:inline;font-size:10px}
+  .upload-zone-label small{display:none}
+  .upload-feedback{margin:0 0 0 4px;display:inline}
+
+  /* main full width */
+  .main{padding:14px}
+  .group-body{grid-template-columns:1fr}
+  .group-body.cols-3{grid-template-columns:1fr 1fr}
+  .field.full{grid-column:1}
+
+  /* output panel: collapsible drawer at bottom */
+  .output-panel{border-left:none;border-top:1px solid var(--border);position:sticky;bottom:0;max-height:50dvh;z-index:50;transition:max-height .25s ease}
+  .output-panel.collapsed{max-height:41px;overflow:hidden}
+  .mobile-output-toggle{display:flex;align-items:center;gap:8px;padding:10px 14px;cursor:pointer;font-size:11px;color:var(--text-dim);background:var(--bg3);border-top:1px solid var(--border);user-select:none;flex-shrink:0}
+  .mobile-output-toggle .arrow{margin-left:auto;transition:transform .2s}
+  .output-panel.collapsed .mobile-output-toggle .arrow{transform:rotate(180deg)}
+  .panel-header{display:none}
+}
 </style>
 </head>
 <body>
-
 <div class="shell">
 
-  <!-- ── TOPBAR ─────────────────────────────────────────────── -->
-  <header class="topbar">
-    <div class="topbar-logo">Blender Render Bot <span>// render_bot.py config</span></div>
-    <div class="topbar-tag">watcher</div>
-    <div class="topbar-right">
-      <button class="btn btn-ghost" onclick="resetAll()">↺ Reset</button>
-      <button class="btn btn-primary" onclick="generate()">⚡ Generate</button>
-    </div>
-  </header>
+<!-- TOPBAR -->
+<header class="topbar">
+  <div class="topbar-logo">Blender Render Bot <span>// config</span></div>
+  <a class="btn btn-primary topbar-dl" href="https://github.com/JannisElef/blender-render-bot/releases/latest/download/render_bot.py" target="_blank" title="Download render_bot.py">⬇ render_bot.py</a>
+  <div class="topbar-sub">watcher</div>
+  <div class="topbar-right">
+    <button class="btn btn-ghost" onclick="resetAll()">↺ Reset</button>
+    <button class="btn btn-primary" onclick="generate()">⚡ Generate</button>
+  </div>
+</header>
 
-  <!-- ── SIDEBAR ────────────────────────────────────────────── -->
-  <nav class="sidebar">
-    <div class="nav-section">Setup</div>
-    <div class="nav-item active" onclick="showSection('paths', this)">
-      <span class="icon">⬡</span> Paths
+<!-- SIDEBAR / MOBILE NAV -->
+<nav class="sidebar">
+  <div class="nav-section">Setup</div>
+  <div class="nav-item active" onclick="showSection('paths',this)"><span class="icon">⬡</span>Paths</div>
+  <div class="nav-item" onclick="showSection('outputs',this)"><span class="icon">◈</span>Outputs</div>
+  <hr class="nav-divider">
+  <div class="nav-section">Watcher</div>
+  <div class="nav-item" onclick="showSection('git',this)"><span class="icon">⎇</span>Git</div>
+  <div class="nav-item" onclick="showSection('reliability',this)"><span class="icon">⟳</span>Reliability</div>
+  <div class="nav-item" onclick="showSection('flags',this)"><span class="icon">⚑</span>Flags</div>
+  <hr class="nav-divider">
+  <div class="nav-section">Render Defaults</div>
+  <div class="nav-item" onclick="showSection('scene',this)"><span class="icon">◉</span>Scene</div>
+  <div class="nav-item" onclick="showSection('mp4',this)"><span class="icon">▶</span>MP4</div>
+  <div class="nav-item" onclick="showSection('gif',this)"><span class="icon">◌</span>GIF</div>
+  <div class="nav-item" onclick="showSection('webm',this)"><span class="icon">◎</span>WebM</div>
+  <div class="nav-item" onclick="showSection('sprite',this)"><span class="icon">▦</span>Spritesheet</div>
+  <hr class="nav-divider">
+  <div class="nav-section">Extras</div>
+  <div class="nav-item" onclick="showSection('logging',this)"><span class="icon">≡</span>Logging</div>
+  <div class="nav-item" onclick="showSection('notify',this)"><span class="icon">◈</span>Notify</div>
+  <div class="nav-item" onclick="showSection('meta',this)"><span class="icon">◇</span>Meta</div>
+  <hr class="nav-divider">
+  <!-- Upload zone in sidebar on desktop, inline on mobile -->
+  <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="handleDrop(event)">
+    <input type="file" id="fileInput" accept=".json,.bat,.sh" onchange="handleFileUpload(this.files[0])">
+    <div class="upload-zone-label">
+      <strong>⬆ Import config</strong>
+      <small>.json · .bat · .sh</small>
     </div>
-    <div class="nav-item" onclick="showSection('outputs', this)">
-      <span class="icon">◈</span> Output Formats
-    </div>
+  </div>
+  <div class="upload-feedback" id="uploadFeedback"></div>
+</nav>
 
-    <hr class="nav-divider">
-    <div class="nav-section">Watcher</div>
-    <div class="nav-item" onclick="showSection('git', this)">
-      <span class="icon">⎇</span> Git
-    </div>
-    <div class="nav-item" onclick="showSection('reliability', this)">
-      <span class="icon">⟳</span> Reliability
-    </div>
-    <div class="nav-item" onclick="showSection('flags', this)">
-      <span class="icon">⚑</span> Flags
-    </div>
+<!-- MAIN CONTENT -->
+<main class="main">
 
-    <hr class="nav-divider">
-    <div class="nav-section">Render Defaults</div>
-    <div class="nav-item" onclick="showSection('scene', this)">
-      <span class="icon">◉</span> Scene
-    </div>
-    <div class="nav-item" onclick="showSection('mp4', this)">
-      <span class="icon">▶</span> MP4
-    </div>
-    <div class="nav-item" onclick="showSection('gif', this)">
-      <span class="icon">◌</span> GIF
-    </div>
-    <div class="nav-item" onclick="showSection('webm', this)">
-      <span class="icon">◎</span> WebM
-    </div>
-    <div class="nav-item" onclick="showSection('sprite', this)">
-      <span class="icon">▦</span> Spritesheet
-    </div>
-
-    <hr class="nav-divider">
-    <div class="nav-section">Extras</div>
-    <div class="nav-item" onclick="showSection('logging', this)">
-      <span class="icon">≡</span> Logging
-    </div>
-    <div class="nav-item" onclick="showSection('notify', this)">
-      <span class="icon">◈</span> Notifications
-    </div>
-    <div class="nav-item" onclick="showSection('meta', this)">
-      <span class="icon">◇</span> Job Meta
-    </div>
-  </nav>
-
-  <!-- ── MAIN ───────────────────────────────────────────────── -->
-  <main class="main">
-
-    <!-- PATHS -->
-    <div class="section active" id="s-paths">
-      <div class="section-title">Paths</div>
-      <div class="section-sub">Executables and repository location.</div>
-
-      <div class="group">
-        <div class="group-header">⬡ Executables</div>
-        <div class="group-body cols-1">
-          <div class="field">
-            <label>Blender executable</label>
-            <input type="text" id="blender" value="blender" placeholder="blender  or  C:\Program Files\Blender Foundation\Blender 5.0\blender.exe">
-          </div>
-          <div class="field">
-            <label>FFmpeg executable</label>
-            <input type="text" id="ffmpeg" value="ffmpeg" placeholder="ffmpeg  or  C:\ffmpeg\bin\ffmpeg.exe">
-          </div>
+  <!-- PATHS -->
+  <div class="section active" id="s-paths">
+    <div class="section-title">Paths</div>
+    <div class="section-sub">Executables and repository location. The global config JSON is loaded as the lowest-priority base layer - every field here can be placed in it so you don't need to repeat CLI args.</div>
+    <div class="group">
+      <div class="group-header">Executables</div>
+      <div class="group-body cols-1">
+        <div class="field">
+          <label>Blender executable</label>
+          <input type="text" id="blender" value="blender" placeholder="blender  or  /usr/bin/blender">
         </div>
-      </div>
-
-      <div class="group">
-        <div class="group-header">⬡ Repository</div>
-        <div class="group-body cols-1">
-          <div class="field">
-            <label>Repo directory <span class="badge badge-opt">optional</span></label>
-            <input type="text" id="repoDir" value="." placeholder=". (script directory)">
-          </div>
-          <div class="field">
-            <label>Global config JSON <span class="badge badge-opt">optional</span></label>
-            <input type="text" id="globalConfig" placeholder="render_bot.json">
-          </div>
+        <div class="field">
+          <label>FFmpeg executable</label>
+          <input type="text" id="ffmpeg" value="ffmpeg" placeholder="ffmpeg  or  /usr/bin/ffmpeg">
         </div>
       </div>
     </div>
-
-    <!-- OUTPUTS -->
-    <div class="section" id="s-outputs">
-      <div class="section-title">Output Formats</div>
-      <div class="section-sub">Select which formats are produced for every job. Per-job JSON can override this.</div>
-
-      <div class="group">
-        <div class="group-header">◈ Formats</div>
-        <div class="group-body cols-1">
-          <div class="field">
-            <label>Active formats</label>
-            <div class="chip-group" id="outputChips">
-              <div class="chip active" data-val="mp4"        onclick="toggleChip(this)"><span class="chip-dot"></span>mp4</div>
-              <div class="chip"        data-val="gif"        onclick="toggleChip(this)"><span class="chip-dot"></span>gif</div>
-              <div class="chip"        data-val="webm"       onclick="toggleChip(this)"><span class="chip-dot"></span>webm</div>
-              <div class="chip"        data-val="frames"     onclick="toggleChip(this)"><span class="chip-dot"></span>frames</div>
-              <div class="chip"        data-val="spritesheet"onclick="toggleChip(this)"><span class="chip-dot"></span>spritesheet</div>
-            </div>
-          </div>
+    <div class="group">
+      <div class="group-header">Repository</div>
+      <div class="group-body cols-1">
+        <div class="field">
+          <label>Repo directory <span class="badge badge-opt">optional</span></label>
+          <input type="text" id="repoDir" value="." placeholder=". (next to script)">
+        </div>
+        <div class="field">
+          <label>Global config JSON <span class="badge badge-opt">optional</span></label>
+          <input type="text" id="globalConfig" placeholder="render_bot.json">
         </div>
       </div>
+    </div>
+  </div>
 
-      <div class="group">
-        <div class="group-header">◈ Frame handling</div>
-        <div class="group-body cols-1">
-          <div class="field">
-            <label>Intermediate frame format</label>
-            <select id="frameFormat">
-              <option value="PNG">PNG</option>
-              <option value="EXR">EXR (OpenEXR, HDR)</option>
-              <option value="JPEG">JPEG</option>
-            </select>
-          </div>
-          <div class="toggle-row">
-            <div class="toggle-label">
-              <span class="name">Keep frames</span>
-              <span class="desc">Retain PNG / EXR / JPEG frames after post-processing. Implied when "frames" output is active.</span>
-            </div>
-            <label class="switch">
-              <input type="checkbox" id="keepFrames">
-              <span class="switch-track"></span>
-            </label>
+  <!-- OUTPUTS -->
+  <div class="section" id="s-outputs">
+    <div class="section-title">Output Formats</div>
+    <div class="section-sub">Which files get produced per job. Per-job <code>.json</code> can always override this. <strong>image</strong> renders a single still frame directly to disk - no FFmpeg involved.</div>
+    <div class="group">
+      <div class="group-header">Active formats</div>
+      <div class="group-body cols-1">
+        <div class="field">
+          <div class="chip-group" id="outputChips">
+            <div class="chip active" data-val="mp4"         onclick="toggleChip(this)"><span class="chip-dot"></span>mp4</div>
+            <div class="chip"        data-val="gif"         onclick="toggleChip(this)"><span class="chip-dot"></span>gif</div>
+            <div class="chip"        data-val="webm"        onclick="toggleChip(this)"><span class="chip-dot"></span>webm</div>
+            <div class="chip"        data-val="frames"      onclick="toggleChip(this)"><span class="chip-dot"></span>frames</div>
+            <div class="chip"        data-val="spritesheet" onclick="toggleChip(this)"><span class="chip-dot"></span>spritesheet</div>
+            <div class="chip"        data-val="image"       onclick="toggleChip(this)"><span class="chip-dot"></span>image</div>
           </div>
         </div>
       </div>
     </div>
-
-    <!-- GIT -->
-    <div class="section" id="s-git">
-      <div class="section-title">Git</div>
-      <div class="section-sub">How the watcher pulls changes and pushes results.</div>
-
-      <div class="group">
-        <div class="group-header">⎇ Remote</div>
-        <div class="group-body">
-          <div class="field">
-            <label>Remote</label>
-            <input type="text" id="remote" value="origin">
-          </div>
-          <div class="field">
-            <label>Watch branch <span class="badge badge-opt">optional</span></label>
-            <input type="text" id="branch" placeholder="main  (current branch if blank)">
-          </div>
-          <div class="field">
-            <label>Push to branch <span class="badge badge-opt">optional</span></label>
-            <input type="text" id="pushBranch" placeholder="renders  (same as pull if blank)">
-          </div>
-          <div class="field">
-            <label>Pull strategy</label>
-            <select id="pullStrategy">
-              <option value="merge">merge</option>
-              <option value="rebase">rebase</option>
-              <option value="ff-only">ff-only</option>
-            </select>
-          </div>
-          <div class="field full">
-            <label>Commit message template <span class="badge badge-opt">optional</span></label>
-            <input type="text" id="commitMsg" placeholder="Auto-Render: {jobs} job(s) completed [{date}]">
-          </div>
+    <div class="group">
+      <div class="group-header">Image output (single frame)</div>
+      <div class="group-body">
+        <div class="field">
+          <label>Image format</label>
+          <select id="imageFormat">
+            <option value="PNG">PNG</option>
+            <option value="JPEG">JPEG</option>
+            <option value="EXR">EXR (HDR)</option>
+            <option value="TIFF">TIFF</option>
+            <option value="BMP">BMP</option>
+            <option value="WEBP">WEBP</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Frame to render <span class="badge badge-blend">from .blend</span></label>
+          <input type="number" id="imageFrame" placeholder="e.g. 1">
         </div>
       </div>
-
-      <div class="group">
-        <div class="group-header">⎇ Push Flags</div>
-        <div class="group-body cols-1">
-          <div class="toggle-row">
-            <div class="toggle-label">
-              <span class="name">--no-push</span>
-              <span class="desc">Skip committing and pushing rendered outputs.</span>
-            </div>
-            <label class="switch">
-              <input type="checkbox" id="noPush">
-              <span class="switch-track"></span>
-            </label>
+    </div>
+    <div class="group">
+      <div class="group-header">Intermediate frame format (for video outputs)</div>
+      <div class="group-body cols-1">
+        <div class="field">
+          <select id="frameFormat">
+            <option value="PNG">PNG</option>
+            <option value="EXR">EXR (OpenEXR, HDR)</option>
+            <option value="JPEG">JPEG</option>
+          </select>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <span class="name">Keep frames after render</span>
+            <span class="desc">Keeps PNG / EXR / JPEG frames. Implied when "frames" output is active.</span>
           </div>
-          <div class="toggle-row">
-            <div class="toggle-label">
-              <span class="name">--push-outputs-only</span>
-              <span class="desc">Only git add output directories, not the whole working tree.</span>
-            </div>
-            <label class="switch">
-              <input type="checkbox" id="pushOutputsOnly">
-              <span class="switch-track"></span>
-            </label>
-          </div>
+          <label class="switch"><input type="checkbox" id="keepFrames"><span class="switch-track"></span></label>
         </div>
       </div>
+    </div>
+  </div>
 
-      <div class="group">
-        <div class="group-header">⎇ File Detection</div>
-        <div class="group-body">
-          <div class="field">
-            <label>Watch patterns</label>
-            <input type="text" id="watchPatterns" value="*.blend *.json" placeholder="*.blend *.json">
-          </div>
-          <div class="field">
-            <label>Ignore patterns <span class="badge badge-opt">optional</span></label>
-            <input type="text" id="ignorePatterns" placeholder="draft_* wip_*">
+  <!-- GIT -->
+  <div class="section" id="s-git">
+    <div class="section-title">Git</div>
+    <div class="section-sub">How the watcher pulls changes and pushes results back.</div>
+    <div class="group">
+      <div class="group-header">Remote</div>
+      <div class="group-body">
+        <div class="field">
+          <label>Remote</label>
+          <input type="text" id="remote" value="origin">
+        </div>
+        <div class="field">
+          <label>Watch branch <span class="badge badge-opt">optional</span></label>
+          <input type="text" id="branch" placeholder="main (current if blank)">
+        </div>
+        <div class="field">
+          <label>Push to branch <span class="badge badge-opt">optional</span></label>
+          <input type="text" id="pushBranch" placeholder="renders (same if blank)">
+        </div>
+        <div class="field">
+          <label>Pull strategy</label>
+          <select id="pullStrategy">
+            <option value="merge">merge</option>
+            <option value="rebase">rebase</option>
+            <option value="ff-only">ff-only</option>
+          </select>
+        </div>
+        <div class="field full">
+          <label>Commit message template <span class="badge badge-opt">optional</span></label>
+          <input type="text" id="commitMsg" placeholder="Auto-Render: {jobs} job(s) [{date}]">
+        </div>
+      </div>
+    </div>
+    <div class="group">
+      <div class="group-header">Push flags</div>
+      <div class="group-body cols-1">
+        <div class="toggle-row">
+          <div class="toggle-label"><span class="name">--no-push</span><span class="desc">Skip committing and pushing rendered outputs.</span></div>
+          <label class="switch"><input type="checkbox" id="noPush"><span class="switch-track"></span></label>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label"><span class="name">--push-outputs-only</span><span class="desc">Only git add output directories, not the whole tree.</span></div>
+          <label class="switch"><input type="checkbox" id="pushOutputsOnly"><span class="switch-track"></span></label>
+        </div>
+      </div>
+    </div>
+    <div class="group">
+      <div class="group-header">File detection</div>
+      <div class="group-body">
+        <div class="field">
+          <label>Watch patterns</label>
+          <input type="text" id="watchPatterns" value="*.blend *.json">
+        </div>
+        <div class="field">
+          <label>Ignore patterns <span class="badge badge-opt">optional</span></label>
+          <input type="text" id="ignorePatterns" placeholder="draft_* wip_*">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RELIABILITY -->
+  <div class="section" id="s-reliability">
+    <div class="section-title">Reliability</div>
+    <div class="section-sub">Retry logic, timeouts, and parallel execution.</div>
+    <div class="group">
+      <div class="group-header">Polling</div>
+      <div class="group-body cols-1">
+        <div class="field">
+          <label>Interval (seconds)</label>
+          <div class="slider-row">
+            <input type="range" id="intervalSlider" min="5" max="300" step="5" value="30" oninput="syncSlider('interval','intervalSlider')">
+            <input type="number" id="interval" value="30" min="5" style="width:68px" oninput="syncSlider('intervalSlider','interval',true)">
           </div>
         </div>
       </div>
     </div>
+    <div class="group">
+      <div class="group-header">Retries</div>
+      <div class="group-body">
+        <div class="field"><label>Max retries</label><input type="number" id="maxRetries" value="3" min="0"></div>
+        <div class="field"><label>Retry delay (s)</label><input type="number" id="retryDelay" value="10" min="0"></div>
+      </div>
+    </div>
+    <div class="group">
+      <div class="group-header">Parallel & timeout</div>
+      <div class="group-body">
+        <div class="field"><label>Max parallel jobs</label><input type="number" id="maxParallel" value="1" min="1" max="16"></div>
+        <div class="field"><label>Job timeout (s) <span class="badge badge-opt">optional</span></label><input type="number" id="jobTimeout" placeholder="none"></div>
+      </div>
+    </div>
+    <div class="group">
+      <div class="group-header">State files</div>
+      <div class="group-body">
+        <div class="field"><label>Lock file</label><input type="text" id="lockFile" value=".render_bot.lock"></div>
+        <div class="field"><label>State file</label><input type="text" id="stateFile" value=".render_bot_state.json"></div>
+      </div>
+    </div>
+  </div>
 
-    <!-- RELIABILITY -->
-    <div class="section" id="s-reliability">
-      <div class="section-title">Reliability</div>
-      <div class="section-sub">Retry logic, timeouts, and parallel execution.</div>
-
-      <div class="group">
-        <div class="group-header">⟳ Polling</div>
-        <div class="group-body cols-1">
-          <div class="field">
-            <label>Interval (seconds)</label>
-            <div class="slider-row">
-              <input type="range" id="intervalSlider" min="5" max="300" step="5" value="30" oninput="syncSlider('interval','intervalSlider')">
-              <input type="number" id="interval" value="30" min="5" style="width:70px" oninput="syncSlider('intervalSlider','interval',true)">
-            </div>
-          </div>
+  <!-- FLAGS -->
+  <div class="section" id="s-flags">
+    <div class="section-title">Flags</div>
+    <div class="section-sub">Boolean switches for watcher behaviour.</div>
+    <div class="group">
+      <div class="group-header">Behaviour</div>
+      <div class="group-body cols-1">
+        <div class="toggle-row">
+          <div class="toggle-label"><span class="name">--fancy</span><span class="desc">Colored terminal output with banners and step indicators.</span></div>
+          <label class="switch"><input type="checkbox" id="fancy" checked><span class="switch-track"></span></label>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label"><span class="name">--show-progress</span><span class="desc">Stream live stdout/stderr from Blender and FFmpeg.</span></div>
+          <label class="switch"><input type="checkbox" id="showProgress"><span class="switch-track"></span></label>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label"><span class="name">--summary</span><span class="desc">Write summary.json to every output directory.</span></div>
+          <label class="switch"><input type="checkbox" id="summary"><span class="switch-track"></span></label>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label"><span class="name">--dry-run</span><span class="desc">Print all commands but execute nothing.</span></div>
+          <label class="switch"><input type="checkbox" id="dryRun"><span class="switch-track"></span></label>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label"><span class="name">--once</span><span class="desc">Check for changes exactly once, then exit (CI mode).</span></div>
+          <label class="switch"><input type="checkbox" id="once"><span class="switch-track"></span></label>
         </div>
       </div>
+    </div>
+  </div>
 
-      <div class="group">
-        <div class="group-header">⟳ Retries</div>
-        <div class="group-body">
-          <div class="field">
-            <label>Max retries</label>
-            <input type="number" id="maxRetries" value="3" min="0">
-          </div>
-          <div class="field">
-            <label>Retry delay (seconds)</label>
-            <input type="number" id="retryDelay" value="10" min="0">
+  <!-- SCENE -->
+  <div class="section" id="s-scene">
+    <div class="section-title">Scene Defaults</div>
+    <div class="section-sub">Leave blank to read from the <code>.blend</code>. Per-job JSON overrides these too.</div>
+    <div class="group">
+      <div class="group-header">Resolution & timing</div>
+      <div class="group-body">
+        <div class="field"><label>Width <span class="badge badge-blend">from .blend</span></label><input type="number" id="width" placeholder="1920"></div>
+        <div class="field"><label>Height <span class="badge badge-blend">from .blend</span></label><input type="number" id="height" placeholder="1080"></div>
+        <div class="field"><label>FPS <span class="badge badge-blend">from .blend</span></label><input type="number" id="fps" placeholder="24"></div>
+        <div class="field"><label>Frame start <span class="badge badge-blend">from .blend</span></label><input type="number" id="frameStart" placeholder="1"></div>
+        <div class="field"><label>Frame end <span class="badge badge-blend">from .blend</span></label><input type="number" id="frameEnd" placeholder="250"></div>
+        <div class="field"><label>Frame step <span class="badge badge-blend">from .blend</span></label><input type="number" id="frameStep" placeholder="1"></div>
+      </div>
+    </div>
+    <div class="group">
+      <div class="group-header">Renderer</div>
+      <div class="group-body">
+        <div class="field">
+          <label>Engine <span class="badge badge-blend">from .blend</span></label>
+          <select id="engine"><option value="">(from .blend)</option><option value="CYCLES">CYCLES</option><option value="BLENDER_EEVEE_NEXT">EEVEE Next</option><option value="BLENDER_WORKBENCH">Workbench</option></select>
+        </div>
+        <div class="field">
+          <label>Device <span class="badge badge-blend">from .blend</span></label>
+          <select id="device"><option value="">(from .blend)</option><option value="CPU">CPU</option><option value="GPU">GPU</option><option value="OPTIX">OPTIX</option><option value="HIP">HIP</option><option value="METAL">METAL</option></select>
+        </div>
+        <div class="field"><label>Samples <span class="badge badge-blend">from .blend</span></label><input type="number" id="samples" placeholder="128"></div>
+        <div class="field"><label>Threads <span class="badge badge-blend">from .blend</span></label><input type="number" id="threads" placeholder="0 = auto"></div>
+        <div class="field"><label>Scene name <span class="badge badge-blend">from .blend</span></label><input type="text" id="scene" placeholder="Scene"></div>
+        <div class="field"><label>Camera name <span class="badge badge-blend">from .blend</span></label><input type="text" id="camera" placeholder="Camera"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MP4 -->
+  <div class="section" id="s-mp4">
+    <div class="section-title">MP4 Settings</div>
+    <div class="section-sub">Applied when <code>mp4</code> is active.</div>
+    <div class="group">
+      <div class="group-header">Encoding</div>
+      <div class="group-body">
+        <div class="field">
+          <label>Codec</label>
+          <select id="mp4Codec"><option value="libx264">libx264 (H.264)</option><option value="libx265">libx265 (H.265)</option><option value="libvpx-vp9">libvpx-vp9 (VP9)</option></select>
+        </div>
+        <div class="field">
+          <label>Preset</label>
+          <select id="mp4Preset"><option value="ultrafast">ultrafast</option><option value="superfast">superfast</option><option value="veryfast">veryfast</option><option value="faster">faster</option><option value="fast">fast</option><option value="medium" selected>medium</option><option value="slow">slow</option><option value="slower">slower</option><option value="veryslow">veryslow</option></select>
+        </div>
+        <div class="field full">
+          <label>CRF - 0 = lossless, 51 = worst</label>
+          <div class="slider-row">
+            <input type="range" id="mp4CrfSlider" min="0" max="51" value="18" oninput="syncSlider('mp4Crf','mp4CrfSlider')">
+            <input type="number" id="mp4Crf" value="18" min="0" max="51" style="width:60px" oninput="syncSlider('mp4CrfSlider','mp4Crf',true)">
           </div>
         </div>
+        <div class="field"><label>FPS override <span class="badge badge-opt">optional</span></label><input type="number" id="mp4Fps" placeholder="(scene fps)"></div>
+        <div class="field"><label>Audio file <span class="badge badge-opt">optional</span></label><input type="text" id="mp4Audio" placeholder="audio.wav"></div>
+        <div class="field full"><label>Extra FFmpeg args <span class="badge badge-opt">optional</span></label><input type="text" id="mp4ExtraArgs" placeholder="-movflags +faststart"></div>
       </div>
+    </div>
+  </div>
 
-      <div class="group">
-        <div class="group-header">⟳ Parallel & Timeout</div>
-        <div class="group-body">
-          <div class="field">
-            <label>Max parallel jobs</label>
-            <input type="number" id="maxParallel" value="1" min="1" max="16">
-          </div>
-          <div class="field">
-            <label>Job timeout (seconds) <span class="badge badge-opt">optional</span></label>
-            <input type="number" id="jobTimeout" placeholder="none">
+  <!-- GIF -->
+  <div class="section" id="s-gif">
+    <div class="section-title">GIF Settings</div>
+    <div class="section-sub">Applied when <code>gif</code> is active.</div>
+    <div class="group">
+      <div class="group-header">Palette & size</div>
+      <div class="group-body">
+        <div class="field"><label>FPS</label><input type="number" id="gifFps" value="15" min="1" max="60"></div>
+        <div class="field"><label>Width (-1 = original)</label><input type="number" id="gifWidth" value="640"></div>
+        <div class="field"><label>Loop (0 = infinite)</label><input type="number" id="gifLoop" value="0" min="0"></div>
+        <div class="field"><label>Dithering</label><select id="gifDither"><option value="bayer">bayer</option><option value="floyd_steinberg">floyd_steinberg</option><option value="none">none</option></select></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WEBM -->
+  <div class="section" id="s-webm">
+    <div class="section-title">WebM Settings</div>
+    <div class="section-sub">Applied when <code>webm</code> is active. VP9 with alpha channel support.</div>
+    <div class="group">
+      <div class="group-header">VP9 encoding</div>
+      <div class="group-body">
+        <div class="field full">
+          <label>CRF</label>
+          <div class="slider-row">
+            <input type="range" id="webmCrfSlider" min="0" max="63" value="30" oninput="syncSlider('webmCrf','webmCrfSlider')">
+            <input type="number" id="webmCrf" value="30" min="0" max="63" style="width:60px" oninput="syncSlider('webmCrfSlider','webmCrf',true)">
           </div>
         </div>
+        <div class="field"><label>FPS override <span class="badge badge-opt">optional</span></label><input type="number" id="webmFps" placeholder="(scene fps)"></div>
       </div>
+    </div>
+  </div>
 
-      <div class="group">
-        <div class="group-header">⟳ State Files</div>
-        <div class="group-body">
-          <div class="field">
-            <label>Lock file</label>
-            <input type="text" id="lockFile" value=".render_bot.lock">
-          </div>
-          <div class="field">
-            <label>State file</label>
-            <input type="text" id="stateFile" value=".render_bot_state.json">
+  <!-- SPRITESHEET -->
+  <div class="section" id="s-sprite">
+    <div class="section-title">Spritesheet Settings</div>
+    <div class="section-sub">Applied when <code>spritesheet</code> is active.</div>
+    <div class="group">
+      <div class="group-header">Grid</div>
+      <div class="group-body">
+        <div class="field"><label>Columns</label><input type="number" id="spriteCols" value="8" min="1"></div>
+        <div class="field"><label>Frame tile width <span class="badge badge-opt">optional</span></label><input type="number" id="spriteScale" placeholder="(original)"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOGGING -->
+  <div class="section" id="s-logging">
+    <div class="section-title">Logging</div>
+    <div class="section-sub">Terminal verbosity and optional log file.</div>
+    <div class="group">
+      <div class="group-header">Output</div>
+      <div class="group-body">
+        <div class="field"><label>Log level</label><select id="logLevel"><option value="DEBUG">DEBUG</option><option value="INFO" selected>INFO</option><option value="WARNING">WARNING</option><option value="ERROR">ERROR</option></select></div>
+        <div class="field"><label>Log file <span class="badge badge-opt">optional</span></label><input type="text" id="logFile" placeholder="render_bot.log"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- NOTIFY -->
+  <div class="section" id="s-notify">
+    <div class="section-title">Notifications</div>
+    <div class="section-sub">Discord / Slack compatible webhook.</div>
+    <div class="group">
+      <div class="group-header">Webhook</div>
+      <div class="group-body cols-1">
+        <div class="field"><label>URL <span class="badge badge-opt">optional</span></label><input type="text" id="notifyWebhook" placeholder="https://discord.com/api/webhooks/..."></div>
+        <div class="field">
+          <label>Notify on</label>
+          <div class="notify-chips">
+            <div class="n-chip" data-val="start" onclick="toggleNChip(this)">start</div>
+            <div class="n-chip active" data-val="done" onclick="toggleNChip(this)">done</div>
+            <div class="n-chip active" data-val="error" onclick="toggleNChip(this)">error</div>
+            <div class="n-chip" data-val="retry" onclick="toggleNChip(this)">retry</div>
           </div>
         </div>
       </div>
     </div>
+  </div>
 
-    <!-- FLAGS -->
-    <div class="section" id="s-flags">
-      <div class="section-title">Flags</div>
-      <div class="section-sub">Boolean switches that change watcher behaviour.</div>
-
-      <div class="group">
-        <div class="group-header">⚑ Behaviour</div>
-        <div class="group-body cols-1">
-          <div class="toggle-row">
-            <div class="toggle-label">
-              <span class="name">--fancy</span>
-              <span class="desc">Colored terminal output with banners and step indicators.</span>
-            </div>
-            <label class="switch">
-              <input type="checkbox" id="fancy" checked>
-              <span class="switch-track"></span>
-            </label>
-          </div>
-          <div class="toggle-row">
-            <div class="toggle-label">
-              <span class="name">--show-progress</span>
-              <span class="desc">Stream live stdout/stderr from Blender and FFmpeg.</span>
-            </div>
-            <label class="switch">
-              <input type="checkbox" id="showProgress">
-              <span class="switch-track"></span>
-            </label>
-          </div>
-          <div class="toggle-row">
-            <div class="toggle-label">
-              <span class="name">--summary</span>
-              <span class="desc">Write summary.json to every output directory.</span>
-            </div>
-            <label class="switch">
-              <input type="checkbox" id="summary">
-              <span class="switch-track"></span>
-            </label>
-          </div>
-          <div class="toggle-row">
-            <div class="toggle-label">
-              <span class="name">--dry-run</span>
-              <span class="desc">Print all commands but run nothing. Good for testing config.</span>
-            </div>
-            <label class="switch">
-              <input type="checkbox" id="dryRun">
-              <span class="switch-track"></span>
-            </label>
-          </div>
-          <div class="toggle-row">
-            <div class="toggle-label">
-              <span class="name">--once</span>
-              <span class="desc">Check for changes exactly once, then exit (CI mode).</span>
-            </div>
-            <label class="switch">
-              <input type="checkbox" id="once">
-              <span class="switch-track"></span>
-            </label>
-          </div>
-        </div>
+  <!-- META -->
+  <div class="section" id="s-meta">
+    <div class="section-title">Job Meta</div>
+    <div class="section-sub">Default metadata on every watcher job. Per-job JSON can override.</div>
+    <div class="group">
+      <div class="group-header">Identity</div>
+      <div class="group-body">
+        <div class="field"><label>Job ID <span class="badge badge-opt">optional</span></label><input type="text" id="jobId" placeholder="watcher-default"></div>
+        <div class="field"><label>Tags <span class="badge badge-opt">optional</span></label><input type="text" id="tags" placeholder="auto nightly"></div>
       </div>
     </div>
+  </div>
 
-    <!-- SCENE -->
-    <div class="section" id="s-scene">
-      <div class="section-title">Scene Defaults</div>
-      <div class="section-sub">Watcher-level defaults. Leave blank to read the value from the <code>.blend</code> file. Per-job JSON can override these too.</div>
+</main>
 
-      <div class="group">
-        <div class="group-header">◉ Resolution & Timing</div>
-        <div class="group-body">
-          <div class="field">
-            <label>Width <span class="badge badge-blend">from .blend</span></label>
-            <input type="number" id="width" placeholder="e.g. 1920">
-          </div>
-          <div class="field">
-            <label>Height <span class="badge badge-blend">from .blend</span></label>
-            <input type="number" id="height" placeholder="e.g. 1080">
-          </div>
-          <div class="field">
-            <label>FPS <span class="badge badge-blend">from .blend</span></label>
-            <input type="number" id="fps" placeholder="e.g. 24">
-          </div>
-          <div class="field">
-            <label>Frame Start <span class="badge badge-blend">from .blend</span></label>
-            <input type="number" id="frameStart" placeholder="e.g. 1">
-          </div>
-          <div class="field">
-            <label>Frame End <span class="badge badge-blend">from .blend</span></label>
-            <input type="number" id="frameEnd" placeholder="e.g. 250">
-          </div>
-          <div class="field">
-            <label>Frame Step <span class="badge badge-blend">from .blend</span></label>
-            <input type="number" id="frameStep" placeholder="1">
-          </div>
-        </div>
+<!-- OUTPUT PANEL -->
+<aside class="output-panel collapsed" id="outputPanel">
+  <!-- mobile toggle -->
+  <div class="mobile-output-toggle" onclick="toggleOutputPanel()">
+    <div class="status-dot"></div>
+    <span>Output</span>
+    <span class="arrow">▲</span>
+  </div>
+  <div class="panel-header"><div class="status-dot"></div>Output</div>
+  <div class="panel-tabs">
+    <button class="panel-tab active" onclick="showTab('cmd',this)">CMD</button>
+    <button class="panel-tab" onclick="showTab('sh',this)">Shell</button>
+    <button class="panel-tab" onclick="showTab('json',this)">JSON</button>
+    <button class="panel-tab" onclick="showTab('summary',this)">Summary</button>
+  </div>
+  <div class="panel-body">
+
+    <!-- CMD tab -->
+    <div class="tab-content active" id="tab-cmd">
+      <div style="font-size:10px;color:var(--text-dim)">Windows - paste in CMD or save as <code>.bat</code></div>
+      <div class="oneline-row">
+        <input type="checkbox" id="onelineBat" onchange="generate()">
+        <label for="onelineBat">Single line</label>
       </div>
-
-      <div class="group">
-        <div class="group-header">◉ Renderer</div>
-        <div class="group-body">
-          <div class="field">
-            <label>Engine <span class="badge badge-blend">from .blend</span></label>
-            <select id="engine">
-              <option value="">(from .blend)</option>
-              <option value="CYCLES">CYCLES</option>
-              <option value="BLENDER_EEVEE_NEXT">EEVEE Next</option>
-              <option value="BLENDER_WORKBENCH">Workbench</option>
-            </select>
-          </div>
-          <div class="field">
-            <label>Device <span class="badge badge-blend">from .blend</span></label>
-            <select id="device">
-              <option value="">(from .blend)</option>
-              <option value="CPU">CPU</option>
-              <option value="GPU">GPU</option>
-              <option value="OPTIX">OPTIX</option>
-              <option value="HIP">HIP</option>
-              <option value="METAL">METAL</option>
-            </select>
-          </div>
-          <div class="field">
-            <label>Samples <span class="badge badge-blend">from .blend</span></label>
-            <input type="number" id="samples" placeholder="e.g. 128">
-          </div>
-          <div class="field">
-            <label>Threads <span class="badge badge-blend">from .blend</span></label>
-            <input type="number" id="threads" placeholder="0 = auto">
-          </div>
-          <div class="field">
-            <label>Scene name <span class="badge badge-blend">from .blend</span></label>
-            <input type="text" id="scene" placeholder="Scene">
-          </div>
-          <div class="field">
-            <label>Camera name <span class="badge badge-blend">from .blend</span></label>
-            <input type="text" id="camera" placeholder="Camera">
-          </div>
-        </div>
-      </div>
+      <div class="code-block" id="cmdOutput"><button class="copy-btn" onclick="copyBlock('cmdOutput',this)">copy</button><span class="comment">:: press Generate</span></div>
+      <button class="btn btn-primary" onclick="downloadBat()" style="width:100%">⬇ Download .bat</button>
     </div>
 
-    <!-- MP4 -->
-    <div class="section" id="s-mp4">
-      <div class="section-title">MP4 Settings</div>
-      <div class="section-sub">Applied when <code>mp4</code> is in active outputs.</div>
-      <div class="group">
-        <div class="group-header">▶ Encoding</div>
-        <div class="group-body">
-          <div class="field">
-            <label>Codec</label>
-            <select id="mp4Codec">
-              <option value="libx264">libx264  (H.264)</option>
-              <option value="libx265">libx265  (H.265)</option>
-              <option value="libvpx-vp9">libvpx-vp9  (VP9)</option>
-            </select>
-          </div>
-          <div class="field">
-            <label>Preset</label>
-            <select id="mp4Preset">
-              <option value="ultrafast">ultrafast</option>
-              <option value="superfast">superfast</option>
-              <option value="veryfast">veryfast</option>
-              <option value="faster">faster</option>
-              <option value="fast">fast</option>
-              <option value="medium" selected>medium</option>
-              <option value="slow">slow</option>
-              <option value="slower">slower</option>
-              <option value="veryslow">veryslow</option>
-            </select>
-          </div>
-          <div class="field">
-            <label>CRF (quality — 0=lossless, 51=worst)</label>
-            <div class="slider-row">
-              <input type="range" id="mp4CrfSlider" min="0" max="51" value="18" oninput="syncSlider('mp4Crf','mp4CrfSlider')">
-              <input type="number" id="mp4Crf" value="18" min="0" max="51" style="width:60px" oninput="syncSlider('mp4CrfSlider','mp4Crf',true)">
-            </div>
-          </div>
-          <div class="field">
-            <label>FPS override <span class="badge badge-opt">optional</span></label>
-            <input type="number" id="mp4Fps" placeholder="(from scene fps)">
-          </div>
-          <div class="field full">
-            <label>Audio file <span class="badge badge-opt">optional</span></label>
-            <input type="text" id="mp4Audio" placeholder="path/to/audio.wav">
-          </div>
-          <div class="field full">
-            <label>Extra FFmpeg args <span class="badge badge-opt">optional</span></label>
-            <input type="text" id="mp4ExtraArgs" placeholder="-movflags +faststart">
-          </div>
-        </div>
+    <!-- SH tab -->
+    <div class="tab-content" id="tab-sh">
+      <div style="font-size:10px;color:var(--text-dim)">Linux / macOS - paste in terminal or save as <code>.sh</code></div>
+      <div class="oneline-row">
+        <input type="checkbox" id="onelineSh" onchange="generate()">
+        <label for="onelineSh">Single line</label>
       </div>
+      <div class="code-block" id="shOutput"><button class="copy-btn" onclick="copyBlock('shOutput',this)">copy</button><span class="comment"># press Generate</span></div>
+      <button class="btn btn-ghost" onclick="downloadSh()" style="width:100%">⬇ Download .sh</button>
     </div>
 
-    <!-- GIF -->
-    <div class="section" id="s-gif">
-      <div class="section-title">GIF Settings</div>
-      <div class="section-sub">Applied when <code>gif</code> is in active outputs.</div>
-      <div class="group">
-        <div class="group-header">◌ Palette & Size</div>
-        <div class="group-body">
-          <div class="field">
-            <label>FPS</label>
-            <input type="number" id="gifFps" value="15" min="1" max="60">
-          </div>
-          <div class="field">
-            <label>Width (-1 = original)</label>
-            <input type="number" id="gifWidth" value="640">
-          </div>
-          <div class="field">
-            <label>Loop (0 = infinite)</label>
-            <input type="number" id="gifLoop" value="0" min="0">
-          </div>
-          <div class="field">
-            <label>Dithering</label>
-            <select id="gifDither">
-              <option value="bayer">bayer</option>
-              <option value="floyd_steinberg">floyd_steinberg</option>
-              <option value="none">none</option>
-            </select>
-          </div>
-        </div>
-      </div>
+    <!-- JSON tab -->
+    <div class="tab-content" id="tab-json">
+      <div style="font-size:10px;color:var(--text-dim)">Save as <code>&lt;stem&gt;.json</code> next to <code>.blend</code>, or as <code>render_bot.json</code> for a global config</div>
+      <div class="code-block" id="jsonOutput"><button class="copy-btn" onclick="copyBlock('jsonOutput',this)">copy</button><span class="comment">// press Generate</span></div>
+      <button class="btn btn-ghost" onclick="downloadJson()" style="width:100%">⬇ Download job_config.json</button>
     </div>
 
-    <!-- WEBM -->
-    <div class="section" id="s-webm">
-      <div class="section-title">WebM Settings</div>
-      <div class="section-sub">Applied when <code>webm</code> is in active outputs. VP9 with alpha channel support.</div>
-      <div class="group">
-        <div class="group-header">◎ VP9 Encoding</div>
-        <div class="group-body">
-          <div class="field">
-            <label>CRF (quality)</label>
-            <div class="slider-row">
-              <input type="range" id="webmCrfSlider" min="0" max="63" value="30" oninput="syncSlider('webmCrf','webmCrfSlider')">
-              <input type="number" id="webmCrf" value="30" min="0" max="63" style="width:60px" oninput="syncSlider('webmCrfSlider','webmCrf',true)">
-            </div>
-          </div>
-          <div class="field">
-            <label>FPS override <span class="badge badge-opt">optional</span></label>
-            <input type="number" id="webmFps" placeholder="(from scene fps)">
-          </div>
-        </div>
-      </div>
+    <!-- Summary tab -->
+    <div class="tab-content" id="tab-summary">
+      <div id="summaryContent" style="font-size:11px;color:var(--text-dim)">Press Generate to see summary.</div>
     </div>
 
-    <!-- SPRITESHEET -->
-    <div class="section" id="s-sprite">
-      <div class="section-title">Spritesheet Settings</div>
-      <div class="section-sub">Applied when <code>spritesheet</code> is in active outputs.</div>
-      <div class="group">
-        <div class="group-header">▦ Grid</div>
-        <div class="group-body">
-          <div class="field">
-            <label>Columns</label>
-            <input type="number" id="spriteCols" value="8" min="1">
-          </div>
-          <div class="field">
-            <label>Frame tile width <span class="badge badge-opt">optional</span></label>
-            <input type="number" id="spriteScale" placeholder="(original)">
-          </div>
-        </div>
-      </div>
-    </div>
+  </div>
+  <div class="launch-bar">
+    <div class="launch-bar-label">Quick actions</div>
+    <button class="btn btn-primary" onclick="generate()" style="width:100%">⚡ Generate</button>
+    <button class="btn btn-ghost" onclick="resetAll()" style="width:100%">↺ Reset all</button>
+  </div>
+</aside>
 
-    <!-- LOGGING -->
-    <div class="section" id="s-logging">
-      <div class="section-title">Logging</div>
-      <div class="section-sub">Terminal verbosity and log file output.</div>
-      <div class="group">
-        <div class="group-header">≡ Output</div>
-        <div class="group-body">
-          <div class="field">
-            <label>Log level</label>
-            <select id="logLevel">
-              <option value="DEBUG">DEBUG</option>
-              <option value="INFO" selected>INFO</option>
-              <option value="WARNING">WARNING</option>
-              <option value="ERROR">ERROR</option>
-            </select>
-          </div>
-          <div class="field">
-            <label>Log file <span class="badge badge-opt">optional</span></label>
-            <input type="text" id="logFile" placeholder="render_bot.log">
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- NOTIFICATIONS -->
-    <div class="section" id="s-notify">
-      <div class="section-title">Notifications</div>
-      <div class="section-sub">Webhook for Discord / Slack job events.</div>
-      <div class="group">
-        <div class="group-header">◈ Webhook</div>
-        <div class="group-body cols-1">
-          <div class="field">
-            <label>Webhook URL <span class="badge badge-opt">optional</span></label>
-            <input type="text" id="notifyWebhook" placeholder="https://discord.com/api/webhooks/...">
-          </div>
-          <div class="field">
-            <label>Notify on events</label>
-            <div class="notify-chips">
-              <div class="n-chip" data-val="start"  onclick="toggleNChip(this)">start</div>
-              <div class="n-chip active" data-val="done"   onclick="toggleNChip(this)">done</div>
-              <div class="n-chip active" data-val="error"  onclick="toggleNChip(this)">error</div>
-              <div class="n-chip" data-val="retry"  onclick="toggleNChip(this)">retry</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- META -->
-    <div class="section" id="s-meta">
-      <div class="section-title">Job Meta</div>
-      <div class="section-sub">Default metadata applied to every watcher job (can be overridden per-job in JSON).</div>
-      <div class="group">
-        <div class="group-header">◇ Identity</div>
-        <div class="group-body">
-          <div class="field">
-            <label>Job ID <span class="badge badge-opt">optional</span></label>
-            <input type="text" id="jobId" placeholder="watcher-default">
-          </div>
-          <div class="field">
-            <label>Tags <span class="badge badge-opt">optional</span></label>
-            <input type="text" id="tags" placeholder="auto nightly v2">
-          </div>
-        </div>
-      </div>
-    </div>
-
-  </main>
-
-  <!-- ── OUTPUT PANEL ────────────────────────────────────────── -->
-  <aside class="output-panel">
-    <div class="panel-header">
-      <div class="status-dot"></div>
-      Output
-    </div>
-    <div class="panel-tabs">
-      <button class="panel-tab active" onclick="showTab('cmd',this)">CMD / BAT</button>
-      <button class="panel-tab" onclick="showTab('json',this)">job JSON</button>
-      <button class="panel-tab" onclick="showTab('summary',this)">Summary</button>
-    </div>
-    <div class="panel-body">
-
-      <!-- CMD tab -->
-      <div class="tab-content active" id="tab-cmd">
-        <div style="margin-bottom:10px;font-size:10px;color:var(--text-dim)">
-          Paste into a terminal or save as <code>.bat</code>
-        </div>
-        <div class="code-block" id="cmdOutput" style="min-height:120px">
-          <button class="copy-btn" onclick="copyBlock('cmdOutput',this)">copy</button>
-          <span class="comment">:: run Generate to build command</span>
-        </div>
-        <div style="margin-top:12px;font-size:10px;color:var(--text-dim)">
-          Download .bat
-        </div>
-        <div style="margin-top:6px">
-          <button class="btn btn-primary" onclick="downloadBat()" style="width:100%">⬇ Download launch_watcher.bat</button>
-        </div>
-      </div>
-
-      <!-- JSON tab -->
-      <div class="tab-content" id="tab-json">
-        <div style="margin-bottom:10px;font-size:10px;color:var(--text-dim)">
-          Save as <code>&lt;blend_stem&gt;.json</code> next to your <code>.blend</code>
-        </div>
-        <div class="code-block" id="jsonOutput" style="min-height:120px">
-          <button class="copy-btn" onclick="copyBlock('jsonOutput',this)">copy</button>
-          <span class="comment">// run Generate to build JSON</span>
-        </div>
-        <div style="margin-top:6px">
-          <button class="btn btn-ghost" onclick="downloadJson()" style="width:100%">⬇ Download job_config.json</button>
-        </div>
-      </div>
-
-      <!-- Summary tab -->
-      <div class="tab-content" id="tab-summary">
-        <div id="summaryContent" style="font-size:11px">
-          <div style="color:var(--text-dim);font-size:11px">Run Generate to see summary.</div>
-        </div>
-      </div>
-
-    </div>
-
-    <!-- Launch bar -->
-    <div class="launch-bar">
-      <div class="launch-bar-label">Quick Actions</div>
-      <button class="btn btn-primary" onclick="generate()" style="width:100%">⚡ Generate Config</button>
-      <button class="btn btn-ghost" onclick="resetAll()" style="width:100%">↺ Reset All to Defaults</button>
-    </div>
-  </aside>
-
-</div>
+</div><!-- .shell -->
 
 <script>
-// ── NAV ──────────────────────────────────────────────────────
+// ── NAV ──────────────────────────────────────────────────
 function showSection(id, el) {
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('s-' + id).classList.add('active');
   el.classList.add('active');
 }
-
 function showTab(id, el) {
   document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.panel-tab').forEach(t => t.classList.remove('active'));
   document.getElementById('tab-' + id).classList.add('active');
   el.classList.add('active');
 }
+function toggleOutputPanel() {
+  document.getElementById('outputPanel').classList.toggle('collapsed');
+}
 
-// ── CHIPS ─────────────────────────────────────────────────────
+// ── CHIPS ────────────────────────────────────────────────
 function toggleChip(el) { el.classList.toggle('active'); generate(); }
 function toggleNChip(el) { el.classList.toggle('active'); generate(); }
 
-// ── SLIDERS ───────────────────────────────────────────────────
+// ── SLIDERS ──────────────────────────────────────────────
 function syncSlider(targetId, sourceId, fromInput) {
-  const src = document.getElementById(sourceId);
   const tgt = document.getElementById(targetId);
-  if (tgt) tgt.value = src.value;
+  if (tgt) tgt.value = document.getElementById(sourceId).value;
   generate();
 }
 
-// ── HELPERS ───────────────────────────────────────────────────
-function val(id)       { return document.getElementById(id)?.value?.trim() || ''; }
-function checked(id)   { return document.getElementById(id)?.checked; }
-function num(id)       { const v = val(id); return v ? parseInt(v) : null; }
-function numf(id)      { const v = val(id); return v ? parseFloat(v) : null; }
+// ── HELPERS ──────────────────────────────────────────────
+const $  = id => document.getElementById(id);
+const val = id => $( id)?.value?.trim() || '';
+const chk = id => $(id)?.checked;
+function getOutputs() { return [...document.querySelectorAll('#outputChips .chip.active')].map(c=>c.dataset.val); }
+function getNotifyOn() { return [...document.querySelectorAll('.n-chip.active')].map(c=>c.dataset.val); }
 
-function getOutputs() {
-  return [...document.querySelectorAll('#outputChips .chip.active')].map(c => c.dataset.val);
+// ── BUILD ARGS LIST ───────────────────────────────────────
+function buildArgs() {
+  const p = [];
+  const repoDir = val('repoDir'); if (repoDir && repoDir!=='.') p.push(`--repo-dir "${repoDir}"`);
+  p.push(`--interval ${val('interval')||30}`);
+  const remote = val('remote'); if (remote && remote!=='origin') p.push(`--remote ${remote}`);
+  const branch = val('branch'); if (branch) p.push(`--branch ${branch}`);
+  const pushBranch = val('pushBranch'); if (pushBranch) p.push(`--push-branch ${pushBranch}`);
+  const strategy = val('pullStrategy'); if (strategy && strategy!=='merge') p.push(`--git-pull-strategy ${strategy}`);
+  const commitMsg = val('commitMsg'); if (commitMsg) p.push(`--commit-message "${commitMsg}"`);
+  const watchPat = val('watchPatterns'); if (watchPat && watchPat!=='*.blend *.json') p.push(`--watch-patterns ${watchPat}`);
+  const ignorePat = val('ignorePatterns'); if (ignorePat) p.push(`--ignore-patterns ${ignorePat}`);
+  const maxRetries = val('maxRetries'); if (maxRetries && maxRetries!=='3') p.push(`--max-retries ${maxRetries}`);
+  const retryDelay = val('retryDelay'); if (retryDelay && retryDelay!=='10') p.push(`--retry-delay ${retryDelay}`);
+  const maxParallel = val('maxParallel'); if (maxParallel && maxParallel!=='1') p.push(`--max-parallel ${maxParallel}`);
+  const jobTimeout = val('jobTimeout'); if (jobTimeout) p.push(`--job-timeout ${jobTimeout}`);
+  const lockFile = val('lockFile'); if (lockFile && lockFile!=='.render_bot.lock') p.push(`--lock-file "${lockFile}"`);
+  const stateFile = val('stateFile'); if (stateFile && stateFile!=='.render_bot_state.json') p.push(`--state-file "${stateFile}"`);
+  const outputs = getOutputs(); if (outputs.length) p.push(`--outputs ${outputs.join(' ')}`);
+  const blender = val('blender'); if (blender && blender!=='blender') p.push(`--blender "${blender}"`);
+  const ffmpeg = val('ffmpeg'); if (ffmpeg && ffmpeg!=='ffmpeg') p.push(`--ffmpeg "${ffmpeg}"`);
+  const globalCfg = val('globalConfig'); if (globalCfg) p.push(`--config "${globalCfg}"`);
+  const logLevel = val('logLevel'); if (logLevel && logLevel!=='INFO') p.push(`--log-level ${logLevel}`);
+  const logFile = val('logFile'); if (logFile) p.push(`--log-file "${logFile}"`);
+  const notifyUrl = val('notifyWebhook');
+  if (notifyUrl) { p.push(`--notify-webhook "${notifyUrl}"`); const no=getNotifyOn(); if(no.length) p.push(`--notify-on ${no.join(' ')}`); }
+  const w=val('width');if(w)p.push(`--width ${w}`);
+  const h=val('height');if(h)p.push(`--height ${h}`);
+  const fps=val('fps');if(fps)p.push(`--fps ${fps}`);
+  const fs=val('frameStart');if(fs)p.push(`--frame-start ${fs}`);
+  const fe=val('frameEnd');if(fe)p.push(`--frame-end ${fe}`);
+  const fstep=val('frameStep');if(fstep)p.push(`--frame-step ${fstep}`);
+  const engine=val('engine');if(engine)p.push(`--engine ${engine}`);
+  const device=val('device');if(device)p.push(`--device ${device}`);
+  const samples=val('samples');if(samples)p.push(`--samples ${samples}`);
+  const threads=val('threads');if(threads)p.push(`--threads ${threads}`);
+  const scene=val('scene');if(scene)p.push(`--scene ${scene}`);
+  const camera=val('camera');if(camera)p.push(`--camera ${camera}`);
+  const mp4Crf=val('mp4Crf');if(mp4Crf&&mp4Crf!=='18')p.push(`--mp4-crf ${mp4Crf}`);
+  const mp4Preset=val('mp4Preset');if(mp4Preset&&mp4Preset!=='medium')p.push(`--mp4-preset ${mp4Preset}`);
+  const mp4Codec=val('mp4Codec');if(mp4Codec&&mp4Codec!=='libx264')p.push(`--mp4-codec ${mp4Codec}`);
+  const mp4Fps=val('mp4Fps');if(mp4Fps)p.push(`--mp4-fps ${mp4Fps}`);
+  const mp4Audio=val('mp4Audio');if(mp4Audio)p.push(`--mp4-audio "${mp4Audio}"`);
+  const mp4Extra=val('mp4ExtraArgs');if(mp4Extra)p.push(`--mp4-extra-args ${mp4Extra}`);
+  const gifFps=val('gifFps');if(gifFps&&gifFps!=='15')p.push(`--gif-fps ${gifFps}`);
+  const gifW=val('gifWidth');if(gifW&&gifW!=='640')p.push(`--gif-width ${gifW}`);
+  const gifLoop=val('gifLoop');if(gifLoop&&gifLoop!=='0')p.push(`--gif-loop ${gifLoop}`);
+  const gifDither=val('gifDither');if(gifDither&&gifDither!=='bayer')p.push(`--gif-dither ${gifDither}`);
+  const webmCrf=val('webmCrf');if(webmCrf&&webmCrf!=='30')p.push(`--webm-crf ${webmCrf}`);
+  const webmFps=val('webmFps');if(webmFps)p.push(`--webm-fps ${webmFps}`);
+  const spriteCols=val('spriteCols');if(spriteCols&&spriteCols!=='8')p.push(`--spritesheet-cols ${spriteCols}`);
+  const spriteScale=val('spriteScale');if(spriteScale)p.push(`--spritesheet-scale ${spriteScale}`);
+  const ff=val('frameFormat');if(ff&&ff!=='PNG')p.push(`--frame-format ${ff}`);
+  // image output
+  if (outputs.includes('image')) {
+    const imgFmt=val('imageFormat');if(imgFmt&&imgFmt!=='PNG')p.push(`--image-format ${imgFmt}`);
+    const imgFrame=val('imageFrame');if(imgFrame)p.push(`--image-frame ${imgFrame}`);
+  }
+  if(chk('noPush'))p.push('--no-push');
+  if(chk('pushOutputsOnly'))p.push('--push-outputs-only');
+  if(chk('fancy'))p.push('--fancy');
+  if(chk('showProgress'))p.push('--show-progress');
+  if(chk('summary'))p.push('--summary');
+  if(chk('dryRun'))p.push('--dry-run');
+  if(chk('once'))p.push('--once');
+  if(chk('keepFrames'))p.push('--keep-frames');
+  const jobId=val('jobId');if(jobId)p.push(`--job-id ${jobId}`);
+  const tags=val('tags');if(tags)p.push(`--tags ${tags}`);
+  return p;
 }
 
-function getNotifyOn() {
-  return [...document.querySelectorAll('.n-chip.active')].map(c => c.dataset.val);
-}
-
-// ── GENERATE ──────────────────────────────────────────────────
+// ── GENERATE ─────────────────────────────────────────────
 function generate() {
-  buildCmd();
+  const args = buildArgs();
+  buildCmd(args);
+  buildSh(args);
   buildJson();
   buildSummary();
+  // uncollapse output panel on desktop
+  if (window.innerWidth > 768) $('outputPanel').classList.remove('collapsed');
 }
 
-function buildCmd() {
-  const parts = ['python render_bot.py watch'];
+function highlight(argsStr) {
+  return argsStr
+    .replace(/--[\w-]+/g, m=>`<span class="flag">${m}</span>`)
+    .replace(/"([^"]+)"/g, m=>`<span class="path">${m}</span>`);
+}
 
-  const repoDir = val('repoDir');
-  if (repoDir && repoDir !== '.') parts.push(`--repo-dir "${repoDir}"`);
-
-  parts.push(`--interval ${val('interval') || 30}`);
-
-  const remote = val('remote');
-  if (remote && remote !== 'origin') parts.push(`--remote ${remote}`);
-
-  const branch = val('branch');
-  if (branch) parts.push(`--branch ${branch}`);
-
-  const pushBranch = val('pushBranch');
-  if (pushBranch) parts.push(`--push-branch ${pushBranch}`);
-
-  const strategy = val('pullStrategy');
-  if (strategy && strategy !== 'merge') parts.push(`--git-pull-strategy ${strategy}`);
-
-  const commitMsg = val('commitMsg');
-  if (commitMsg) parts.push(`--commit-message "${commitMsg}"`);
-
-  const watchPat = val('watchPatterns');
-  if (watchPat && watchPat !== '*.blend *.json') parts.push(`--watch-patterns ${watchPat}`);
-
-  const ignorePat = val('ignorePatterns');
-  if (ignorePat) parts.push(`--ignore-patterns ${ignorePat}`);
-
-  const maxRetries = val('maxRetries');
-  if (maxRetries && maxRetries !== '3') parts.push(`--max-retries ${maxRetries}`);
-
-  const retryDelay = val('retryDelay');
-  if (retryDelay && retryDelay !== '10') parts.push(`--retry-delay ${retryDelay}`);
-
-  const maxParallel = val('maxParallel');
-  if (maxParallel && maxParallel !== '1') parts.push(`--max-parallel ${maxParallel}`);
-
-  const jobTimeout = val('jobTimeout');
-  if (jobTimeout) parts.push(`--job-timeout ${jobTimeout}`);
-
-  const lockFile = val('lockFile');
-  if (lockFile && lockFile !== '.render_bot.lock') parts.push(`--lock-file "${lockFile}"`);
-
-  const stateFile = val('stateFile');
-  if (stateFile && stateFile !== '.render_bot_state.json') parts.push(`--state-file "${stateFile}"`);
-
-  const outputs = getOutputs();
-  if (outputs.length) parts.push(`--outputs ${outputs.join(' ')}`);
-
-  const blender = val('blender');
-  if (blender && blender !== 'blender') parts.push(`--blender "${blender}"`);
-
-  const ffmpeg = val('ffmpeg');
-  if (ffmpeg && ffmpeg !== 'ffmpeg') parts.push(`--ffmpeg "${ffmpeg}"`);
-
-  const globalCfg = val('globalConfig');
-  if (globalCfg) parts.push(`--config "${globalCfg}"`);
-
-  const logLevel = val('logLevel');
-  if (logLevel && logLevel !== 'INFO') parts.push(`--log-level ${logLevel}`);
-
-  const logFile = val('logFile');
-  if (logFile) parts.push(`--log-file "${logFile}"`);
-
-  const notifyUrl = val('notifyWebhook');
-  if (notifyUrl) {
-    parts.push(`--notify-webhook "${notifyUrl}"`);
-    const notifyOn = getNotifyOn();
-    if (notifyOn.length) parts.push(`--notify-on ${notifyOn.join(' ')}`);
+function buildCmd(args) {
+  const oneline = chk('onelineBat');
+  const base = 'python render_bot.py watch';
+  let plain, display;
+  if (oneline) {
+    plain   = base + ' ' + args.join(' ');
+    display = `<span class="kw">python</span> render_bot.py <span class="flag">watch</span> ` + highlight(args.join(' '));
+  } else {
+    plain   = base + (args.length ? ' ^\r\n    ' + args.join(' ^\r\n    ') : '');
+    display = `<span class="kw">python</span> render_bot.py <span class="flag">watch</span>` +
+              (args.length ? ' ^\n    ' + highlight(args.join(' ^\n    ')) : '');
   }
+  const el = $('cmdOutput');
+  el.innerHTML = `<button class="copy-btn" onclick="copyBlock('cmdOutput',this)">copy</button>` + display;
+  el.dataset.plain = plain;
+}
 
-  // scene overrides
-  const w = val('width'); if (w) parts.push(`--width ${w}`);
-  const h = val('height'); if (h) parts.push(`--height ${h}`);
-  const fps = val('fps'); if (fps) parts.push(`--fps ${fps}`);
-  const fs = val('frameStart'); if (fs) parts.push(`--frame-start ${fs}`);
-  const fe = val('frameEnd'); if (fe) parts.push(`--frame-end ${fe}`);
-  const fstep = val('frameStep'); if (fstep) parts.push(`--frame-step ${fstep}`);
-  const engine = val('engine'); if (engine) parts.push(`--engine ${engine}`);
-  const device = val('device'); if (device) parts.push(`--device ${device}`);
-  const samples = val('samples'); if (samples) parts.push(`--samples ${samples}`);
-  const threads = val('threads'); if (threads) parts.push(`--threads ${threads}`);
-  const scene = val('scene'); if (scene) parts.push(`--scene ${scene}`);
-  const camera = val('camera'); if (camera) parts.push(`--camera ${camera}`);
-
-  // mp4
-  const mp4Crf = val('mp4Crf'); if (mp4Crf && mp4Crf !== '18') parts.push(`--mp4-crf ${mp4Crf}`);
-  const mp4Preset = val('mp4Preset'); if (mp4Preset && mp4Preset !== 'medium') parts.push(`--mp4-preset ${mp4Preset}`);
-  const mp4Codec = val('mp4Codec'); if (mp4Codec && mp4Codec !== 'libx264') parts.push(`--mp4-codec ${mp4Codec}`);
-  const mp4Fps = val('mp4Fps'); if (mp4Fps) parts.push(`--mp4-fps ${mp4Fps}`);
-  const mp4Audio = val('mp4Audio'); if (mp4Audio) parts.push(`--mp4-audio "${mp4Audio}"`);
-  const mp4Extra = val('mp4ExtraArgs'); if (mp4Extra) parts.push(`--mp4-extra-args ${mp4Extra}`);
-
-  // gif
-  const gifFps = val('gifFps'); if (gifFps && gifFps !== '15') parts.push(`--gif-fps ${gifFps}`);
-  const gifW = val('gifWidth'); if (gifW && gifW !== '640') parts.push(`--gif-width ${gifW}`);
-  const gifLoop = val('gifLoop'); if (gifLoop && gifLoop !== '0') parts.push(`--gif-loop ${gifLoop}`);
-  const gifDither = val('gifDither'); if (gifDither && gifDither !== 'bayer') parts.push(`--gif-dither ${gifDither}`);
-
-  // webm
-  const webmCrf = val('webmCrf'); if (webmCrf && webmCrf !== '30') parts.push(`--webm-crf ${webmCrf}`);
-  const webmFps = val('webmFps'); if (webmFps) parts.push(`--webm-fps ${webmFps}`);
-
-  // spritesheet
-  const spriteCols = val('spriteCols'); if (spriteCols && spriteCols !== '8') parts.push(`--spritesheet-cols ${spriteCols}`);
-  const spriteScale = val('spriteScale'); if (spriteScale) parts.push(`--spritesheet-scale ${spriteScale}`);
-
-  // frame format
-  const ff = val('frameFormat'); if (ff && ff !== 'PNG') parts.push(`--frame-format ${ff}`);
-
-  // flags
-  if (checked('noPush'))          parts.push('--no-push');
-  if (checked('pushOutputsOnly')) parts.push('--push-outputs-only');
-  if (checked('fancy'))           parts.push('--fancy');
-  if (checked('showProgress'))    parts.push('--show-progress');
-  if (checked('summary'))         parts.push('--summary');
-  if (checked('dryRun'))          parts.push('--dry-run');
-  if (checked('once'))            parts.push('--once');
-  if (checked('keepFrames'))      parts.push('--keep-frames');
-
-  // job meta
-  const jobId = val('jobId'); if (jobId) parts.push(`--job-id ${jobId}`);
-  const tags = val('tags'); if (tags) parts.push(`--tags ${tags}`);
-
-  // Format for display: break after every arg that starts with --
-  const formatted = parts.join(' ^\n    ');
-
-  const el = document.getElementById('cmdOutput');
-  el.innerHTML = `<button class="copy-btn" onclick="copyBlock('cmdOutput',this)">copy</button>` +
-    `<span class="kw">python</span> render_bot.py <span class="flag">watch</span> ^\n    ` +
-    parts.slice(1).join(' ^\n    ')
-      .replace(/--[\w-]+/g, m => `<span class="flag">${m}</span>`)
-      .replace(/"([^"]+)"/g, m => `<span class="path">${m}</span>`);
-
-  // store plain version for download
-  el.dataset.plain = 'python render_bot.py watch ' + parts.slice(1).join(' ^\r\n    ');
+function buildSh(args) {
+  const oneline = chk('onelineSh');
+  const base = 'python3 render_bot.py watch';
+  let plain, display;
+  if (oneline) {
+    plain   = base + ' ' + args.join(' ');
+    display = `<span class="kw">python3</span> render_bot.py <span class="flag">watch</span> ` + highlight(args.join(' '));
+  } else {
+    plain   = base + (args.length ? ' \\\n    ' + args.join(' \\\n    ') : '');
+    display = `<span class="kw">python3</span> render_bot.py <span class="flag">watch</span>` +
+              (args.length ? ' \\\n    ' + highlight(args.join(' \\\n    ')) : '');
+  }
+  const el = $('shOutput');
+  el.innerHTML = `<button class="copy-btn" onclick="copyBlock('shOutput',this)">copy</button>` + display;
+  el.dataset.plain = '#!/usr/bin/env bash\n' + plain;
 }
 
 function buildJson() {
   const cfg = {};
-
-  const outputs = getOutputs();
-  if (outputs.length) cfg.outputs = outputs;
-
-  const ff = val('frameFormat'); if (ff && ff !== 'PNG') cfg.frame_format = ff;
-  if (checked('keepFrames')) cfg.keep_frames = true;
-
-  const w = val('width'); if (w) cfg.width = parseInt(w);
-  const h = val('height'); if (h) cfg.height = parseInt(h);
-  const fps = val('fps'); if (fps) cfg.fps = parseInt(fps);
-  const fs = val('frameStart'); if (fs) cfg.frame_start = parseInt(fs);
-  const fe = val('frameEnd'); if (fe) cfg.frame_end = parseInt(fe);
-  const fstep = val('frameStep'); if (fstep) cfg.frame_step = parseInt(fstep);
-  const engine = val('engine'); if (engine) cfg.engine = engine;
-  const device = val('device'); if (device) cfg.device = device;
-  const samples = val('samples'); if (samples) cfg.samples = parseInt(samples);
-  const threads = val('threads'); if (threads) cfg.threads = parseInt(threads);
-  const scene = val('scene'); if (scene) cfg.scene = scene;
-  const camera = val('camera'); if (camera) cfg.camera = camera;
-
-  // mp4
-  const mp4Crf = val('mp4Crf'); if (mp4Crf) cfg.mp4_crf = parseInt(mp4Crf);
-  const mp4Preset = val('mp4Preset'); if (mp4Preset) cfg.mp4_preset = mp4Preset;
-  const mp4Codec = val('mp4Codec'); if (mp4Codec) cfg.mp4_codec = mp4Codec;
-  const mp4Fps = val('mp4Fps'); if (mp4Fps) cfg.mp4_fps = parseInt(mp4Fps);
-  const mp4Audio = val('mp4Audio'); if (mp4Audio) cfg.mp4_audio = mp4Audio;
-  const mp4Extra = val('mp4ExtraArgs'); if (mp4Extra) cfg.mp4_extra_args = mp4Extra.split(' ');
-
-  // gif
-  cfg.gif_fps = parseInt(val('gifFps') || '15');
-  cfg.gif_width = parseInt(val('gifWidth') || '640');
-  const gifLoop = val('gifLoop'); if (gifLoop) cfg.gif_loop = parseInt(gifLoop);
-  cfg.gif_dither = val('gifDither') || 'bayer';
-
-  // webm
-  cfg.webm_crf = parseInt(val('webmCrf') || '30');
-  const webmFps = val('webmFps'); if (webmFps) cfg.webm_fps = parseInt(webmFps);
-
-  // spritesheet
-  cfg.spritesheet_cols = parseInt(val('spriteCols') || '8');
-  const spriteScale = val('spriteScale'); if (spriteScale) cfg.spritesheet_scale = parseInt(spriteScale);
-
-  if (checked('summary')) cfg.summary = true;
-  const jobId = val('jobId'); if (jobId) cfg.job_id = jobId;
-  const tags = val('tags'); if (tags) cfg.tags = tags.split(/\s+/);
-
-  const notifyUrl = val('notifyWebhook');
-  if (notifyUrl) {
-    cfg.notify_webhook = notifyUrl;
-    cfg.notify_on = getNotifyOn();
+  const outputs = getOutputs(); if(outputs.length) cfg.outputs = outputs;
+  const ff=val('frameFormat');if(ff&&ff!=='PNG')cfg.frame_format=ff;
+  if(chk('keepFrames'))cfg.keep_frames=true;
+  if(outputs.includes('image')){
+    const imgFmt=val('imageFormat');if(imgFmt)cfg.image_format=imgFmt;
+    const imgFrame=val('imageFrame');if(imgFrame)cfg.image_frame=parseInt(imgFrame);
   }
-
-  const jsonStr = JSON.stringify(cfg, null, 4);
-  const highlighted = syntaxHighlight(jsonStr);
-
-  const el = document.getElementById('jsonOutput');
-  el.innerHTML = `<button class="copy-btn" onclick="copyBlock('jsonOutput',this)">copy</button>` + highlighted;
-  el.dataset.plain = jsonStr;
+  const w=val('width');if(w)cfg.width=parseInt(w);
+  const h=val('height');if(h)cfg.height=parseInt(h);
+  const fps=val('fps');if(fps)cfg.fps=parseInt(fps);
+  const fs=val('frameStart');if(fs)cfg.frame_start=parseInt(fs);
+  const fe=val('frameEnd');if(fe)cfg.frame_end=parseInt(fe);
+  const fstep=val('frameStep');if(fstep)cfg.frame_step=parseInt(fstep);
+  const engine=val('engine');if(engine)cfg.engine=engine;
+  const device=val('device');if(device)cfg.device=device;
+  const samples=val('samples');if(samples)cfg.samples=parseInt(samples);
+  const threads=val('threads');if(threads)cfg.threads=parseInt(threads);
+  const scene=val('scene');if(scene)cfg.scene=scene;
+  const camera=val('camera');if(camera)cfg.camera=camera;
+  const mp4Crf=val('mp4Crf');if(mp4Crf)cfg.mp4_crf=parseInt(mp4Crf);
+  const mp4Preset=val('mp4Preset');if(mp4Preset)cfg.mp4_preset=mp4Preset;
+  const mp4Codec=val('mp4Codec');if(mp4Codec)cfg.mp4_codec=mp4Codec;
+  const mp4Fps=val('mp4Fps');if(mp4Fps)cfg.mp4_fps=parseInt(mp4Fps);
+  const mp4Audio=val('mp4Audio');if(mp4Audio)cfg.mp4_audio=mp4Audio;
+  const mp4Extra=val('mp4ExtraArgs');if(mp4Extra)cfg.mp4_extra_args=mp4Extra.split(' ');
+  cfg.gif_fps=parseInt(val('gifFps')||'15');
+  cfg.gif_width=parseInt(val('gifWidth')||'640');
+  const gifLoop=val('gifLoop');if(gifLoop)cfg.gif_loop=parseInt(gifLoop);
+  cfg.gif_dither=val('gifDither')||'bayer';
+  cfg.webm_crf=parseInt(val('webmCrf')||'30');
+  const webmFps=val('webmFps');if(webmFps)cfg.webm_fps=parseInt(webmFps);
+  cfg.spritesheet_cols=parseInt(val('spriteCols')||'8');
+  const spriteScale=val('spriteScale');if(spriteScale)cfg.spritesheet_scale=parseInt(spriteScale);
+  if(chk('summary'))cfg.summary=true;
+  const jobId=val('jobId');if(jobId)cfg.job_id=jobId;
+  const tags=val('tags');if(tags)cfg.tags=tags.split(/\s+/);
+  const notifyUrl=val('notifyWebhook');
+  if(notifyUrl){cfg.notify_webhook=notifyUrl;cfg.notify_on=getNotifyOn();}
+  const jsonStr=JSON.stringify(cfg,null,4);
+  const el=$('jsonOutput');
+  el.innerHTML=`<button class="copy-btn" onclick="copyBlock('jsonOutput',this)">copy</button>`+syntaxHighlight(jsonStr);
+  el.dataset.plain=jsonStr;
 }
 
 function syntaxHighlight(json) {
-  return json
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, m => {
-      let cls = 'json-num';
-      if (/^"/.test(m)) cls = /:$/.test(m) ? 'json-key' : 'json-str';
-      else if (/true|false/.test(m)) cls = 'json-bool';
-      else if (/null/.test(m)) cls = 'json-null';
-      return `<span class="${cls}">${m}</span>`;
+  return json.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,m=>{
+      let c='json-num';
+      if(/^"/.test(m))c=/:$/.test(m)?'json-key':'json-str';
+      else if(/true|false/.test(m))c='json-bool';
+      else if(/null/.test(m))c='json-null';
+      return `<span class="${c}">${m}</span>`;
     });
 }
 
 function buildSummary() {
-  const outputs = getOutputs();
-  const blender = val('blender') || 'blender';
-  const ffmpeg = val('ffmpeg') || 'ffmpeg';
-
-  const rows = [
-    ['Repo Dir',       val('repoDir') || '.'],
-    ['Interval',       (val('interval') || 30) + 's'],
-    ['Branch',         val('branch') || '(current)'],
-    ['Remote',         val('remote') || 'origin'],
-    ['Push branch',    val('pushBranch') || '(same)'],
-    ['Pull strategy',  val('pullStrategy') || 'merge'],
-    ['Outputs',        outputs.join(', ') || '—'],
-    ['Frame format',   val('frameFormat') || 'PNG'],
-    ['Keep frames',    checked('keepFrames') ? 'yes' : 'no'],
-    ['Engine',         val('engine') || '(from .blend)'],
-    ['Device',         val('device') || '(from .blend)'],
-    ['Resolution',     (val('width') && val('height')) ? `${val('width')}×${val('height')}` : '(from .blend)'],
-    ['FPS',            val('fps') || '(from .blend)'],
-    ['Samples',        val('samples') || '(from .blend)'],
-    ['Max parallel',   val('maxParallel') || 1],
-    ['Max retries',    val('maxRetries') || 3],
-    ['Job timeout',    val('jobTimeout') ? val('jobTimeout') + 's' : 'none'],
-    ['Fancy output',   checked('fancy') ? 'yes' : 'no'],
-    ['Dry run',        checked('dryRun') ? 'YES' : 'no'],
-    ['No push',        checked('noPush') ? 'yes' : 'no'],
-    ['Summary JSON',   checked('summary') ? 'yes' : 'no'],
-    ['Log level',      val('logLevel') || 'INFO'],
-    ['Webhook',        val('notifyWebhook') ? '✔ configured' : '—'],
+  const outputs=getOutputs();
+  const rows=[
+    ['Repo dir',val('repoDir')||'.'],
+    ['Interval',(val('interval')||30)+'s'],
+    ['Branch',val('branch')||'(current)'],
+    ['Remote',val('remote')||'origin'],
+    ['Push branch',val('pushBranch')||'(same)'],
+    ['Pull strategy',val('pullStrategy')||'merge'],
+    ['Outputs',outputs.join(', ')||'-'],
+    ['Frame format',val('frameFormat')||'PNG'],
+    ['Keep frames',chk('keepFrames')?'yes':'no'],
+    ['Image format',outputs.includes('image')?(val('imageFormat')||'PNG'):'-'],
+    ['Engine',val('engine')||'(from .blend)'],
+    ['Device',val('device')||'(from .blend)'],
+    ['Resolution',(val('width')&&val('height'))?`${val('width')}×${val('height')}`:'(from .blend)'],
+    ['FPS',val('fps')||'(from .blend)'],
+    ['Samples',val('samples')||'(from .blend)'],
+    ['Max parallel',val('maxParallel')||1],
+    ['Max retries',val('maxRetries')||3],
+    ['Job timeout',val('jobTimeout')?val('jobTimeout')+'s':'none'],
+    ['Fancy',chk('fancy')?'yes':'no'],
+    ['Dry run',chk('dryRun')?'YES':'no'],
+    ['No push',chk('noPush')?'yes':'no'],
+    ['Summary JSON',chk('summary')?'yes':'no'],
+    ['Log level',val('logLevel')||'INFO'],
+    ['Webhook',val('notifyWebhook')?'configured':'-'],
   ];
-
-  const html = rows.map(([k, v]) => {
-    const isOff = v === 'no' || v === 'none' || v === '—';
-    const isOn  = v === 'yes' || v === 'YES' || v === '✔ configured';
-    const cls   = isOff ? 'off' : isOn ? 'on' : '';
+  $('summaryContent').innerHTML=rows.map(([k,v])=>{
+    const cls=v==='no'||v==='none'||v==='-'?'off':v==='yes'||v==='YES'||v==='configured'?'on':'';
     return `<div class="info-row"><span class="k">${k}</span><span class="v ${cls}">${v}</span></div>`;
   }).join('');
-
-  document.getElementById('summaryContent').innerHTML = html;
 }
 
-// ── COPY ──────────────────────────────────────────────────────
-function copyBlock(blockId, btn) {
-  const el = document.getElementById(blockId);
-  const text = el.dataset.plain || el.innerText.replace(/^copy\n/, '');
-  navigator.clipboard.writeText(text).then(() => {
-    btn.textContent = 'copied!';
-    btn.classList.add('copied');
-    setTimeout(() => { btn.textContent = 'copy'; btn.classList.remove('copied'); }, 2000);
+// ── COPY ─────────────────────────────────────────────────
+function copyBlock(id, btn) {
+  const el=$(id);
+  const text=el.dataset.plain||el.innerText.replace(/^copy\n/,'');
+  navigator.clipboard.writeText(text).then(()=>{
+    btn.textContent='copied!';btn.classList.add('copied');
+    setTimeout(()=>{btn.textContent='copy';btn.classList.remove('copied');},2000);
   });
 }
 
-// ── DOWNLOAD ──────────────────────────────────────────────────
+// ── DOWNLOADS ────────────────────────────────────────────
 function downloadBat() {
-  const el = document.getElementById('cmdOutput');
-  const cmd = el.dataset.plain || '';
-
-  const bat = `@echo off
-title render_bot — Watcher
-echo.
-echo  ╔══════════════════════════════════════════════╗
-echo  ║           render_bot  ^|  Watcher             ║
-echo  ╚══════════════════════════════════════════════╝
-echo.
-echo  Press Ctrl+C to stop.
-echo  ──────────────────────────────────────────────
-echo.
-
-${cmd}
-
-echo.
-echo  [render_bot] Watcher stopped.
-pause
-`;
-
-  download('launch_watcher.bat', bat);
+  const cmd=$('cmdOutput').dataset.plain||'';
+  const bat=`@echo off\ntitle Blender Render Bot - Watcher\necho.\necho  Blender Render Bot  ^|  Watcher\necho  Press Ctrl+C to stop.\necho.\n\n${cmd}\n\necho.\necho  Watcher stopped.\npause\n`;
+  dl('launch_watcher.bat',bat);
+}
+function downloadSh() {
+  const cmd=$('shOutput').dataset.plain||'';
+  dl('launch_watcher.sh',cmd+'\n');
+}
+function downloadJson() { dl('job_config.json',$('jsonOutput').dataset.plain||'{}'); }
+function dl(name,content) {
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([content],{type:'text/plain'}));
+  a.download=name;a.click();
 }
 
-function downloadJson() {
-  const el = document.getElementById('jsonOutput');
-  const json = el.dataset.plain || '{}';
-  download('job_config.json', json);
+// ── FILE UPLOAD / IMPORT ──────────────────────────────────
+function handleDrop(e) {
+  e.preventDefault();
+  $('uploadZone').classList.remove('drag');
+  const f=e.dataTransfer.files[0];
+  if(f) handleFileUpload(f);
+}
+function handleFileUpload(file) {
+  if (!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{ parseImport(file.name, e.target.result); };
+  reader.readAsText(file);
+}
+function parseImport(filename, text) {
+  const fb=$('uploadFeedback');
+  try {
+    if (filename.endsWith('.json')) {
+      applyJson(JSON.parse(text));
+      fb.textContent='✔ JSON imported';
+    } else if (filename.endsWith('.bat')) {
+      applyBat(text);
+      fb.textContent='✔ .bat imported';
+    } else if (filename.endsWith('.sh')) {
+      applyBat(text); // same arg parsing
+      fb.textContent='✔ .sh imported';
+    } else {
+      fb.textContent='⚠ unknown file type';
+    }
+    setTimeout(()=>fb.textContent='',3000);
+    generate();
+  } catch(err) {
+    fb.textContent='⚠ parse error: '+err.message;
+  }
 }
 
-function download(filename, content) {
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([content], { type: 'text/plain' }));
-  a.download = filename;
-  a.click();
+function applyJson(cfg) {
+  const setV=(id,v)=>{ const el=$(id); if(el&&v!=null) el.value=v; };
+  const setC=(id,v)=>{ const el=$(id); if(el) el.checked=!!v; };
+  if(cfg.outputs){
+    document.querySelectorAll('#outputChips .chip').forEach(c=>{
+      c.classList.toggle('active', cfg.outputs.includes(c.dataset.val));
+    });
+  }
+  setV('imageFormat',cfg.image_format);
+  setV('imageFrame',cfg.image_frame);
+  setV('frameFormat',cfg.frame_format);
+  setC('keepFrames',cfg.keep_frames);
+  setV('width',cfg.width);setV('height',cfg.height);setV('fps',cfg.fps);
+  setV('frameStart',cfg.frame_start);setV('frameEnd',cfg.frame_end);setV('frameStep',cfg.frame_step);
+  setV('engine',cfg.engine);setV('device',cfg.device);
+  setV('samples',cfg.samples);setV('threads',cfg.threads);
+  setV('scene',cfg.scene);setV('camera',cfg.camera);
+  setV('mp4Crf',cfg.mp4_crf);setV('mp4CrfSlider',cfg.mp4_crf);
+  setV('mp4Preset',cfg.mp4_preset);setV('mp4Codec',cfg.mp4_codec);
+  setV('mp4Fps',cfg.mp4_fps);setV('mp4Audio',cfg.mp4_audio);
+  if(cfg.mp4_extra_args) setV('mp4ExtraArgs',cfg.mp4_extra_args.join(' '));
+  setV('gifFps',cfg.gif_fps);setV('gifWidth',cfg.gif_width);
+  setV('gifLoop',cfg.gif_loop);setV('gifDither',cfg.gif_dither);
+  setV('webmCrf',cfg.webm_crf);setV('webmCrfSlider',cfg.webm_crf);setV('webmFps',cfg.webm_fps);
+  setV('spriteCols',cfg.spritesheet_cols);setV('spriteScale',cfg.spritesheet_scale);
+  setC('summary',cfg.summary);setV('jobId',cfg.job_id);
+  if(cfg.tags) setV('tags',cfg.tags.join(' '));
+  setV('notifyWebhook',cfg.notify_webhook);
+  if(cfg.notify_on){
+    document.querySelectorAll('.n-chip').forEach(c=>{
+      c.classList.toggle('active',cfg.notify_on.includes(c.dataset.val));
+    });
+  }
 }
 
-// ── RESET ─────────────────────────────────────────────────────
+function applyBat(text) {
+  // Parse --key value and --flag from a bat/sh command line
+  const line = text.split(/\r?\n/).find(l=>l.includes('render_bot.py'))||'';
+  const setFromArg=(argName,elId,isFlag=false)=>{
+    const el=$(elId); if(!el)return;
+    if(isFlag){ el.checked=line.includes(argName); return; }
+    const m=line.match(new RegExp(argName+'\\s+([^\\s"^\\\\]+|"[^"]*")'));
+    if(m) el.value=m[1].replace(/^"|"$/g,'');
+  };
+  // Parse --outputs (multi-value)
+  const om=line.match(/--outputs\s+((?:[\w*]+\s*)+?)(?:--|$)/);
+  if(om){
+    const active=om[1].trim().split(/\s+/);
+    document.querySelectorAll('#outputChips .chip').forEach(c=>{
+      c.classList.toggle('active',active.includes(c.dataset.val));
+    });
+  }
+  setFromArg('--repo-dir','repoDir');
+  setFromArg('--interval','interval');setFromArg('--interval','intervalSlider');
+  setFromArg('--remote','remote');setFromArg('--branch','branch');
+  setFromArg('--push-branch','pushBranch');setFromArg('--git-pull-strategy','pullStrategy');
+  setFromArg('--max-retries','maxRetries');setFromArg('--retry-delay','retryDelay');
+  setFromArg('--max-parallel','maxParallel');setFromArg('--job-timeout','jobTimeout');
+  setFromArg('--blender','blender');setFromArg('--ffmpeg','ffmpeg');
+  setFromArg('--config','globalConfig');setFromArg('--log-level','logLevel');
+  setFromArg('--log-file','logFile');setFromArg('--commit-message','commitMsg');
+  setFromArg('--width','width');setFromArg('--height','height');setFromArg('--fps','fps');
+  setFromArg('--frame-start','frameStart');setFromArg('--frame-end','frameEnd');
+  setFromArg('--engine','engine');setFromArg('--device','device');
+  setFromArg('--samples','samples');setFromArg('--frame-format','frameFormat');
+  setFromArg('--mp4-crf','mp4Crf');setFromArg('--mp4-crf','mp4CrfSlider');
+  setFromArg('--mp4-preset','mp4Preset');setFromArg('--mp4-codec','mp4Codec');
+  setFromArg('--webm-crf','webmCrf');setFromArg('--webm-crf','webmCrfSlider');
+  setFromArg('--gif-fps','gifFps');setFromArg('--gif-width','gifWidth');
+  setFromArg('--gif-dither','gifDither');setFromArg('--image-format','imageFormat');
+  setFromArg('--image-frame','imageFrame');
+  setFromArg('--no-push','noPush',true);
+  setFromArg('--push-outputs-only','pushOutputsOnly',true);
+  setFromArg('--fancy','fancy',true);
+  setFromArg('--show-progress','showProgress',true);
+  setFromArg('--summary','summary',true);
+  setFromArg('--dry-run','dryRun',true);
+  setFromArg('--once','once',true);
+  setFromArg('--keep-frames','keepFrames',true);
+}
+
+// ── RESET ────────────────────────────────────────────────
 function resetAll() {
-  // paths
-  document.getElementById('blender').value = 'blender';
-  document.getElementById('ffmpeg').value = 'ffmpeg';
-  document.getElementById('repoDir').value = '.';
-  document.getElementById('globalConfig').value = '';
-
-  // outputs
-  document.querySelectorAll('#outputChips .chip').forEach(c => {
-    c.classList.toggle('active', c.dataset.val === 'mp4');
-  });
-  document.getElementById('frameFormat').value = 'PNG';
-  document.getElementById('keepFrames').checked = false;
-
-  // git
-  document.getElementById('remote').value = 'origin';
-  document.getElementById('branch').value = '';
-  document.getElementById('pushBranch').value = '';
-  document.getElementById('pullStrategy').value = 'merge';
-  document.getElementById('commitMsg').value = '';
-  document.getElementById('watchPatterns').value = '*.blend *.json';
-  document.getElementById('ignorePatterns').value = '';
-  document.getElementById('noPush').checked = false;
-  document.getElementById('pushOutputsOnly').checked = false;
-
-  // reliability
-  document.getElementById('interval').value = 30;
-  document.getElementById('intervalSlider').value = 30;
-  document.getElementById('maxRetries').value = 3;
-  document.getElementById('retryDelay').value = 10;
-  document.getElementById('maxParallel').value = 1;
-  document.getElementById('jobTimeout').value = '';
-  document.getElementById('lockFile').value = '.render_bot.lock';
-  document.getElementById('stateFile').value = '.render_bot_state.json';
-
-  // flags
-  document.getElementById('fancy').checked = true;
-  document.getElementById('showProgress').checked = false;
-  document.getElementById('summary').checked = false;
-  document.getElementById('dryRun').checked = false;
-  document.getElementById('once').checked = false;
-
-  // scene
-  ['width','height','fps','frameStart','frameEnd','frameStep','samples','threads','scene','camera'].forEach(id => {
-    document.getElementById(id).value = '';
-  });
-  document.getElementById('engine').value = '';
-  document.getElementById('device').value = '';
-
-  // mp4
-  document.getElementById('mp4Crf').value = 18;
-  document.getElementById('mp4CrfSlider').value = 18;
-  document.getElementById('mp4Preset').value = 'medium';
-  document.getElementById('mp4Codec').value = 'libx264';
-  document.getElementById('mp4Fps').value = '';
-  document.getElementById('mp4Audio').value = '';
-  document.getElementById('mp4ExtraArgs').value = '';
-
-  // gif
-  document.getElementById('gifFps').value = 15;
-  document.getElementById('gifWidth').value = 640;
-  document.getElementById('gifLoop').value = 0;
-  document.getElementById('gifDither').value = 'bayer';
-
-  // webm
-  document.getElementById('webmCrf').value = 30;
-  document.getElementById('webmCrfSlider').value = 30;
-  document.getElementById('webmFps').value = '';
-
-  // sprite
-  document.getElementById('spriteCols').value = 8;
-  document.getElementById('spriteScale').value = '';
-
-  // logging
-  document.getElementById('logLevel').value = 'INFO';
-  document.getElementById('logFile').value = '';
-
-  // notify
-  document.getElementById('notifyWebhook').value = '';
-  document.querySelectorAll('.n-chip').forEach(c => {
-    c.classList.toggle('active', c.dataset.val === 'done' || c.dataset.val === 'error');
-  });
-
-  // meta
-  document.getElementById('jobId').value = '';
-  document.getElementById('tags').value = '';
-
+  $('blender').value='blender';$('ffmpeg').value='ffmpeg';
+  $('repoDir').value='.';$('globalConfig').value='';
+  document.querySelectorAll('#outputChips .chip').forEach(c=>c.classList.toggle('active',c.dataset.val==='mp4'));
+  $('frameFormat').value='PNG';$('keepFrames').checked=false;
+  $('imageFormat').value='PNG';$('imageFrame').value='';
+  $('remote').value='origin';$('branch').value='';$('pushBranch').value='';
+  $('pullStrategy').value='merge';$('commitMsg').value='';
+  $('watchPatterns').value='*.blend *.json';$('ignorePatterns').value='';
+  $('noPush').checked=false;$('pushOutputsOnly').checked=false;
+  $('interval').value=30;$('intervalSlider').value=30;
+  $('maxRetries').value=3;$('retryDelay').value=10;
+  $('maxParallel').value=1;$('jobTimeout').value='';
+  $('lockFile').value='.render_bot.lock';$('stateFile').value='.render_bot_state.json';
+  $('fancy').checked=true;$('showProgress').checked=false;
+  $('summary').checked=false;$('dryRun').checked=false;$('once').checked=false;
+  ['width','height','fps','frameStart','frameEnd','frameStep','samples','threads','scene','camera']
+    .forEach(id=>$(id).value='');
+  $('engine').value='';$('device').value='';
+  $('mp4Crf').value=18;$('mp4CrfSlider').value=18;$('mp4Preset').value='medium';
+  $('mp4Codec').value='libx264';$('mp4Fps').value='';$('mp4Audio').value='';$('mp4ExtraArgs').value='';
+  $('gifFps').value=15;$('gifWidth').value=640;$('gifLoop').value=0;$('gifDither').value='bayer';
+  $('webmCrf').value=30;$('webmCrfSlider').value=30;$('webmFps').value='';
+  $('spriteCols').value=8;$('spriteScale').value='';
+  $('logLevel').value='INFO';$('logFile').value='';
+  $('notifyWebhook').value='';
+  document.querySelectorAll('.n-chip').forEach(c=>c.classList.toggle('active',c.dataset.val==='done'||c.dataset.val==='error'));
+  $('jobId').value='';$('tags').value='';
   generate();
 }
 
-// ── LIVE REGEN on any input change ───────────────────────────
-document.querySelectorAll('input, select').forEach(el => {
+// ── LIVE CHANGE LISTENERS ─────────────────────────────────
+document.querySelectorAll('input:not([type=file]), select').forEach(el=>{
   el.addEventListener('change', generate);
   el.addEventListener('input',  generate);
 });
 
-// ── INIT ─────────────────────────────────────────────────────
+// ── INIT ─────────────────────────────────────────────────
 generate();
 </script>
 </body>
