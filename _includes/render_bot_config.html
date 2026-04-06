@@ -10,8 +10,8 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
   --bg:#0c0e10;--bg2:#111417;--bg3:#181c20;
-  --border:#23282e;--border2:#2e3540;
-  --text:#c8d0da;--text-dim:#5a6472;--text-faint:#2e3540;
+  --border:#2e3540;--border2:#3a4252;
+  --text:#eaf0f8;--text-dim:#94a3b8;--text-faint:#4a5568;
   --accent:#e8a020;--accent2:#f0c060;
   --green:#3ec97a;--red:#e05050;--blue:#4a90d9;--purple:#9b6ee8;
   --mono:'IBM Plex Mono',monospace;--sans:'Inter',sans-serif;
@@ -57,7 +57,6 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);line-height:
 .section{display:none;animation:fadeIn .15s ease}
 .section.active{display:block}
 @keyframes fadeIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
-.section-title{font-family:var(--sans);font-size:15px;font-weight:600;color:var(--text);margin-bottom:3px;letter-spacing:-.01em}
 .section-sub{font-size:11px;color:var(--text-dim);margin-bottom:18px;line-height:1.5}
 .section-sub code{background:var(--bg3);padding:1px 5px;border-radius:3px;font-size:10px}
 
@@ -82,17 +81,25 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 input[type=number]::-webkit-inner-spin-button{opacity:.4}
 
 /* ── TOGGLE ── */
-.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);gap:12px}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);gap:12px;cursor:pointer;user-select:none}
 .toggle-row:last-child{border-bottom:none}
-.toggle-label{display:flex;flex-direction:column;gap:2px;min-width:0}
+.toggle-row:hover{background:rgba(255,255,255,.02);margin:0 -14px;padding:8px 14px}
+.toggle-row:last-child:hover{border-bottom:none}
+.toggle-label{display:flex;flex-direction:column;gap:2px;min-width:0;pointer-events:none}
 .toggle-label .name{font-size:12px;color:var(--text)}
 .toggle-label .desc{font-size:10px;color:var(--text-dim);line-height:1.4}
-.switch{position:relative;width:34px;height:19px;flex-shrink:0}
+.switch{position:relative;width:34px;height:19px;flex-shrink:0;pointer-events:none}
 .switch input{opacity:0;width:0;height:0;position:absolute}
-.switch-track{position:absolute;inset:0;background:var(--border2);border-radius:20px;cursor:pointer;transition:background .2s}
+.switch-track{position:absolute;inset:0;background:var(--border2);border-radius:20px;transition:background .2s}
 .switch-track::after{content:'';position:absolute;left:3px;top:3px;width:13px;height:13px;background:var(--text-dim);border-radius:50%;transition:transform .2s,background .2s}
 .switch input:checked+.switch-track{background:rgba(232,160,32,.28)}
 .switch input:checked+.switch-track::after{transform:translateX(15px);background:var(--accent)}
+
+/* ── SECTION HEADER ── */
+.section-header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:3px}
+.section-title{font-family:var(--sans);font-size:15px;font-weight:600;color:var(--text);letter-spacing:-.01em}
+.btn-reset-section{background:none;border:1px solid var(--border2);border-radius:3px;font-family:var(--mono);font-size:9px;color:var(--text-dim);cursor:pointer;padding:2px 8px;text-transform:uppercase;letter-spacing:.06em;transition:all .12s}
+.btn-reset-section:hover{border-color:var(--accent);color:var(--accent)}
 
 /* ── CHIPS ── */
 .chip-group{display:flex;flex-wrap:wrap;gap:7px;margin-top:3px}
@@ -134,7 +141,7 @@ input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;hei
 /* ── CODE BLOCK ── */
 .code-block{background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:12px;font-size:11px;line-height:1.8;white-space:pre-wrap;word-break:break-all;color:var(--text);position:relative;min-height:50px}
 .code-block .kw{color:var(--accent)}
-.code-block .flag{color:var(--purple)}
+.code-block .arg{color:var(--accent2)}
 .code-block .path{color:var(--blue)}
 .code-block .comment{color:var(--text-faint)}
 .copy-btn{position:absolute;top:7px;right:7px;padding:3px 9px;background:var(--bg3);border:1px solid var(--border);border-radius:3px;font-family:var(--mono);font-size:9px;color:var(--text-dim);cursor:pointer;text-transform:uppercase;letter-spacing:.05em;transition:all .12s}
@@ -164,6 +171,8 @@ input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;hei
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+#ffmpegField{transition:opacity .2s}
+#ffmpegField.hidden{opacity:.3;pointer-events:none}
 
 /* ── MOBILE ──────────────────────────────────────────────────
    Stack: topbar / content (nav drawer + main) / output panel toggle */
@@ -257,7 +266,8 @@ input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;hei
 
   <!-- PATHS -->
   <div class="section active" id="s-paths">
-    <div class="section-title">Paths</div>
+    
+    <div class="section-header"><div class="section-title">Paths</div><button class="btn-reset-section" onclick="resetPaths()">↺ reset</button></div>
     <div class="section-sub">Executables and repository location. The global config JSON is loaded as the lowest-priority base layer - every field here can be placed in it so you don't need to repeat CLI args.</div>
     <div class="group">
       <div class="group-header">Executables</div>
@@ -266,8 +276,8 @@ input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;hei
           <label>Blender executable</label>
           <input type="text" id="blender" value="blender" placeholder="blender  or  /usr/bin/blender">
         </div>
-        <div class="field">
-          <label>FFmpeg executable</label>
+        <div class="field" id="ffmpegField">
+          <label>FFmpeg executable <span class="badge badge-opt">only for mp4 / gif / webm / spritesheet / frames</span></label>
           <input type="text" id="ffmpeg" value="ffmpeg" placeholder="ffmpeg  or  /usr/bin/ffmpeg">
         </div>
       </div>
@@ -289,7 +299,8 @@ input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;hei
 
   <!-- OUTPUTS -->
   <div class="section" id="s-outputs">
-    <div class="section-title">Output Formats</div>
+    
+    <div class="section-header"><div class="section-title">Output Formats</div><button class="btn-reset-section" onclick="resetOutputs()">↺ reset</button></div>
     <div class="section-sub">Which files get produced per job. Per-job <code>.json</code> can always override this. <strong>image</strong> renders a single still frame directly to disk - no FFmpeg involved.</div>
     <div class="group">
       <div class="group-header">Active formats</div>
@@ -349,7 +360,8 @@ input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;hei
 
   <!-- GIT -->
   <div class="section" id="s-git">
-    <div class="section-title">Git</div>
+    
+    <div class="section-header"><div class="section-title">Git</div><button class="btn-reset-section" onclick="resetGit()">↺ reset</button></div>
     <div class="section-sub">How the watcher pulls changes and pushes results back.</div>
     <div class="group">
       <div class="group-header">Remote</div>
@@ -410,7 +422,8 @@ input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;hei
 
   <!-- RELIABILITY -->
   <div class="section" id="s-reliability">
-    <div class="section-title">Reliability</div>
+    
+    <div class="section-header"><div class="section-title">Reliability</div><button class="btn-reset-section" onclick="resetReliability()">↺ reset</button></div>
     <div class="section-sub">Retry logic, timeouts, and parallel execution.</div>
     <div class="group">
       <div class="group-header">Polling</div>
@@ -449,7 +462,8 @@ input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;hei
 
   <!-- FLAGS -->
   <div class="section" id="s-flags">
-    <div class="section-title">Flags</div>
+    
+    <div class="section-header"><div class="section-title">Flags</div><button class="btn-reset-section" onclick="resetFlags()">↺ reset</button></div>
     <div class="section-sub">Boolean switches for watcher behaviour.</div>
     <div class="group">
       <div class="group-header">Behaviour</div>
@@ -480,7 +494,8 @@ input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;hei
 
   <!-- SCENE -->
   <div class="section" id="s-scene">
-    <div class="section-title">Scene Defaults</div>
+    
+    <div class="section-header"><div class="section-title">Scene Defaults</div><button class="btn-reset-section" onclick="resetScene()">↺ reset</button></div>
     <div class="section-sub">Leave blank to read from the <code>.blend</code>. Per-job JSON overrides these too.</div>
     <div class="group">
       <div class="group-header">Resolution & timing</div>
@@ -521,7 +536,8 @@ input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;hei
 
   <!-- MP4 -->
   <div class="section" id="s-mp4">
-    <div class="section-title">MP4 Settings</div>
+    
+    <div class="section-header"><div class="section-title">MP4 Settings</div><button class="btn-reset-section" onclick="resetMp4()">↺ reset</button></div>
     <div class="section-sub">Applied when <code>mp4</code> is active.</div>
     <div class="group">
       <div class="group-header">Encoding</div>
@@ -550,7 +566,8 @@ input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;hei
 
   <!-- GIF -->
   <div class="section" id="s-gif">
-    <div class="section-title">GIF Settings</div>
+    
+    <div class="section-header"><div class="section-title">GIF Settings</div><button class="btn-reset-section" onclick="resetGif()">↺ reset</button></div>
     <div class="section-sub">Applied when <code>gif</code> is active.</div>
     <div class="group">
       <div class="group-header">Palette & size</div>
@@ -565,7 +582,8 @@ input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;hei
 
   <!-- WEBM -->
   <div class="section" id="s-webm">
-    <div class="section-title">WebM Settings</div>
+    
+    <div class="section-header"><div class="section-title">WebM Settings</div><button class="btn-reset-section" onclick="resetWebm()">↺ reset</button></div>
     <div class="section-sub">Applied when <code>webm</code> is active. VP9 with alpha channel support.</div>
     <div class="group">
       <div class="group-header">VP9 encoding</div>
@@ -584,7 +602,8 @@ input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;hei
 
   <!-- SPRITESHEET -->
   <div class="section" id="s-sprite">
-    <div class="section-title">Spritesheet Settings</div>
+    
+    <div class="section-header"><div class="section-title">Spritesheet Settings</div><button class="btn-reset-section" onclick="resetSprite()">↺ reset</button></div>
     <div class="section-sub">Applied when <code>spritesheet</code> is active.</div>
     <div class="group">
       <div class="group-header">Grid</div>
@@ -597,7 +616,8 @@ input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;hei
 
   <!-- LOGGING -->
   <div class="section" id="s-logging">
-    <div class="section-title">Logging</div>
+    
+    <div class="section-header"><div class="section-title">Logging</div><button class="btn-reset-section" onclick="resetLogging()">↺ reset</button></div>
     <div class="section-sub">Terminal verbosity and optional log file.</div>
     <div class="group">
       <div class="group-header">Output</div>
@@ -610,7 +630,8 @@ input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;hei
 
   <!-- NOTIFY -->
   <div class="section" id="s-notify">
-    <div class="section-title">Notifications</div>
+    
+    <div class="section-header"><div class="section-title">Notifications</div><button class="btn-reset-section" onclick="resetNotify()">↺ reset</button></div>
     <div class="section-sub">Discord / Slack compatible webhook.</div>
     <div class="group">
       <div class="group-header">Webhook</div>
@@ -631,7 +652,8 @@ input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;hei
 
   <!-- META -->
   <div class="section" id="s-meta">
-    <div class="section-title">Job Meta</div>
+    
+    <div class="section-header"><div class="section-title">Job Meta</div><button class="btn-reset-section" onclick="resetMeta()">↺ reset</button></div>
     <div class="section-sub">Default metadata on every watcher job. Per-job JSON can override.</div>
     <div class="group">
       <div class="group-header">Identity</div>
@@ -680,7 +702,7 @@ input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;hei
         <label for="onelineSh">Single line</label>
       </div>
       <div class="code-block" id="shOutput"><button class="copy-btn" onclick="copyBlock('shOutput',this)">copy</button><span class="comment"># press Generate</span></div>
-      <button class="btn btn-ghost" onclick="downloadSh()" style="width:100%">⬇ Download .sh</button>
+      <button class="btn btn-primary" onclick="downloadSh()" style="width:100%">⬇ Download .sh</button>
     </div>
 
     <!-- JSON tab -->
@@ -761,7 +783,9 @@ function buildArgs() {
   const stateFile = val('stateFile'); if (stateFile && stateFile!=='.render_bot_state.json') p.push(`--state-file "${stateFile}"`);
   const outputs = getOutputs(); if (outputs.length) p.push(`--outputs ${outputs.join(' ')}`);
   const blender = val('blender'); if (blender && blender!=='blender') p.push(`--blender "${blender}"`);
-  const ffmpeg = val('ffmpeg'); if (ffmpeg && ffmpeg!=='ffmpeg') p.push(`--ffmpeg "${ffmpeg}"`);
+  const ffmpegOutputs = ['mp4','gif','webm','spritesheet','frames'];
+  const needsFfmpeg = outputs.some(o => ffmpegOutputs.includes(o));
+  if (needsFfmpeg) { const ffmpeg = val('ffmpeg'); if (ffmpeg && ffmpeg!=='ffmpeg') p.push(`--ffmpeg "${ffmpeg}"`); }
   const globalCfg = val('globalConfig'); if (globalCfg) p.push(`--config "${globalCfg}"`);
   const logLevel = val('logLevel'); if (logLevel && logLevel!=='INFO') p.push(`--log-level ${logLevel}`);
   const logFile = val('logFile'); if (logFile) p.push(`--log-file "${logFile}"`);
@@ -821,14 +845,22 @@ function generate() {
   buildSh(args);
   buildJson();
   buildSummary();
+  // show/hide ffmpeg field based on whether any ffmpeg-dependent output is active
+  const ffmpegOutputs = ['mp4','gif','webm','spritesheet','frames'];
+  const needsFfmpeg = getOutputs().some(o => ffmpegOutputs.includes(o));
+  document.getElementById('ffmpegField').classList.toggle('hidden', !needsFfmpeg);
   // uncollapse output panel on desktop
   if (window.innerWidth > 768) $('outputPanel').classList.remove('collapsed');
 }
 
 function highlight(argsStr) {
+  // Only color --flag-names, leave quoted values as path color
+  // Process carefully: first mark flags, then quoted strings — but avoid re-matching inside span tags
   return argsStr
-    .replace(/--[\w-]+/g, m=>`<span class="flag">${m}</span>`)
-    .replace(/"([^"]+)"/g, m=>`<span class="path">${m}</span>`);
+    .replace(/--[\w-]+/g, m=>`\x01${m}\x02`)      // temp-mark flags
+    .replace(/"([^"]+)"/g, m=>`\x03${m}\x04`)      // temp-mark quoted paths
+    .replace(/\x01([^\x02]*)\x02/g, (_,m)=>`<span class="arg">${m}</span>`)
+    .replace(/\x03([^\x04]*)\x04/g, (_,m)=>`<span class="path">${m}</span>`);
 }
 
 function buildCmd(args) {
@@ -837,10 +869,10 @@ function buildCmd(args) {
   let plain, display;
   if (oneline) {
     plain   = base + ' ' + args.join(' ');
-    display = `<span class="kw">python</span> render_bot.py <span class="flag">watch</span> ` + highlight(args.join(' '));
+    display = `<span class="kw">python</span> render_bot.py <span class="kw">watch</span> ` + highlight(args.join(' '));
   } else {
     plain   = base + (args.length ? ' ^\r\n    ' + args.join(' ^\r\n    ') : '');
-    display = `<span class="kw">python</span> render_bot.py <span class="flag">watch</span>` +
+    display = `<span class="kw">python</span> render_bot.py <span class="kw">watch</span>` +
               (args.length ? ' ^\n    ' + highlight(args.join(' ^\n    ')) : '');
   }
   const el = $('cmdOutput');
@@ -854,10 +886,10 @@ function buildSh(args) {
   let plain, display;
   if (oneline) {
     plain   = base + ' ' + args.join(' ');
-    display = `<span class="kw">python3</span> render_bot.py <span class="flag">watch</span> ` + highlight(args.join(' '));
+    display = `<span class="kw">python3</span> render_bot.py <span class="kw">watch</span> ` + highlight(args.join(' '));
   } else {
     plain   = base + (args.length ? ' \\\n    ' + args.join(' \\\n    ') : '');
-    display = `<span class="kw">python3</span> render_bot.py <span class="flag">watch</span>` +
+    display = `<span class="kw">python3</span> render_bot.py <span class="kw">watch</span>` +
               (args.length ? ' \\\n    ' + highlight(args.join(' \\\n    ')) : '');
   }
   const el = $('shOutput');
@@ -871,7 +903,7 @@ function buildJson() {
   const ff=val('frameFormat');if(ff&&ff!=='PNG')cfg.frame_format=ff;
   if(chk('keepFrames'))cfg.keep_frames=true;
   if(outputs.includes('image')){
-    const imgFmt=val('imageFormat');if(imgFmt)cfg.image_format=imgFmt;
+    const imgFmt=val('imageFormat');if(imgFmt&&imgFmt!=='PNG')cfg.image_format=imgFmt;
     const imgFrame=val('imageFrame');if(imgFrame)cfg.image_frame=parseInt(imgFrame);
   }
   const w=val('width');if(w)cfg.width=parseInt(w);
@@ -888,20 +920,32 @@ function buildJson() {
   const camera=val('camera');if(camera)cfg.camera=camera;
   const extraPy=val('extraPython');if(extraPy)cfg.extra_python=extraPy;
   const blenderArgs=val('blenderArgs');if(blenderArgs)cfg.blender_args=blenderArgs.split(/\s+/);
-  const mp4Crf=val('mp4Crf');if(mp4Crf)cfg.mp4_crf=parseInt(mp4Crf);
-  const mp4Preset=val('mp4Preset');if(mp4Preset)cfg.mp4_preset=mp4Preset;
-  const mp4Codec=val('mp4Codec');if(mp4Codec)cfg.mp4_codec=mp4Codec;
-  const mp4Fps=val('mp4Fps');if(mp4Fps)cfg.mp4_fps=parseInt(mp4Fps);
-  const mp4Audio=val('mp4Audio');if(mp4Audio)cfg.mp4_audio=mp4Audio;
-  const mp4Extra=val('mp4ExtraArgs');if(mp4Extra)cfg.mp4_extra_args=mp4Extra.split(' ');
-  cfg.gif_fps=parseInt(val('gifFps')||'15');
-  cfg.gif_width=parseInt(val('gifWidth')||'640');
-  const gifLoop=val('gifLoop');if(gifLoop)cfg.gif_loop=parseInt(gifLoop);
-  cfg.gif_dither=val('gifDither')||'bayer';
-  cfg.webm_crf=parseInt(val('webmCrf')||'30');
-  const webmFps=val('webmFps');if(webmFps)cfg.webm_fps=parseInt(webmFps);
-  cfg.spritesheet_cols=parseInt(val('spriteCols')||'8');
-  const spriteScale=val('spriteScale');if(spriteScale)cfg.spritesheet_scale=parseInt(spriteScale);
+  // mp4 params — only when mp4 output is active
+  if(outputs.includes('mp4')){
+    const mp4Crf=parseInt(val('mp4Crf'));if(!isNaN(mp4Crf)&&mp4Crf!==18)cfg.mp4_crf=mp4Crf;
+    const mp4Preset=val('mp4Preset');if(mp4Preset&&mp4Preset!=='medium')cfg.mp4_preset=mp4Preset;
+    const mp4Codec=val('mp4Codec');if(mp4Codec&&mp4Codec!=='libx264')cfg.mp4_codec=mp4Codec;
+    const mp4Fps=val('mp4Fps');if(mp4Fps)cfg.mp4_fps=parseInt(mp4Fps);
+    const mp4Audio=val('mp4Audio');if(mp4Audio)cfg.mp4_audio=mp4Audio;
+    const mp4Extra=val('mp4ExtraArgs');if(mp4Extra)cfg.mp4_extra_args=mp4Extra.split(' ');
+  }
+  // gif params — only when gif output is active
+  if(outputs.includes('gif')){
+    const gifFps=parseInt(val('gifFps'));if(!isNaN(gifFps)&&gifFps!==15)cfg.gif_fps=gifFps;
+    const gifW=parseInt(val('gifWidth'));if(!isNaN(gifW)&&gifW!==640)cfg.gif_width=gifW;
+    const gifLoop=parseInt(val('gifLoop'));if(!isNaN(gifLoop)&&gifLoop!==0)cfg.gif_loop=gifLoop;
+    const gifDither=val('gifDither');if(gifDither&&gifDither!=='bayer')cfg.gif_dither=gifDither;
+  }
+  // webm params — only when webm output is active
+  if(outputs.includes('webm')){
+    const webmCrf=parseInt(val('webmCrf'));if(!isNaN(webmCrf)&&webmCrf!==30)cfg.webm_crf=webmCrf;
+    const webmFps=val('webmFps');if(webmFps)cfg.webm_fps=parseInt(webmFps);
+  }
+  // spritesheet params — only when spritesheet output is active
+  if(outputs.includes('spritesheet')){
+    const spriteCols=parseInt(val('spriteCols'));if(!isNaN(spriteCols)&&spriteCols!==8)cfg.spritesheet_cols=spriteCols;
+    const spriteScale=val('spriteScale');if(spriteScale)cfg.spritesheet_scale=parseInt(spriteScale);
+  }
   if(chk('summary'))cfg.summary=true;
   const jobId=val('jobId');if(jobId)cfg.job_id=jobId;
   const tags=val('tags');if(tags)cfg.tags=tags.split(/\s+/);
@@ -1106,35 +1150,91 @@ function applyBat(text) {
   setFromArg('--keep-frames','keepFrames',true);
 }
 
-// ── RESET ────────────────────────────────────────────────
-function resetAll() {
+// ── TOGGLE ROW CLICK ─────────────────────────────────────
+document.addEventListener('click', e => {
+  const row = e.target.closest('.toggle-row');
+  if (!row) return;
+  // Don't double-fire if they clicked the switch input directly
+  if (e.target.tagName === 'INPUT') return;
+  const inp = row.querySelector('input[type=checkbox]');
+  if (inp) { inp.checked = !inp.checked; generate(); }
+});
+
+// ── SECTION RESETS ───────────────────────────────────────
+function resetPaths(){
   $('blender').value='blender';$('ffmpeg').value='ffmpeg';
   $('repoDir').value='.';$('globalConfig').value='';
+  generate();
+}
+function resetOutputs(){
   document.querySelectorAll('#outputChips .chip').forEach(c=>c.classList.toggle('active',c.dataset.val==='mp4'));
   $('frameFormat').value='PNG';$('keepFrames').checked=false;
   $('imageFormat').value='PNG';$('imageFrame').value='';
+  generate();
+}
+function resetGit(){
   $('remote').value='origin';$('branch').value='';$('pushBranch').value='';
   $('pullStrategy').value='merge';$('commitMsg').value='';
   $('watchPatterns').value='*.blend *.json';$('ignorePatterns').value='';
   $('noPush').checked=false;$('pushOutputsOnly').checked=false;
+  generate();
+}
+function resetReliability(){
   $('interval').value=30;$('intervalSlider').value=30;
   $('maxRetries').value=3;$('retryDelay').value=10;
   $('maxParallel').value=1;$('jobTimeout').value='';
   $('lockFile').value='.render_bot.lock';$('stateFile').value='.render_bot_state.json';
+  generate();
+}
+function resetFlags(){
   $('fancy').checked=true;$('showProgress').checked=false;
   $('summary').checked=false;$('dryRun').checked=false;$('once').checked=false;
+  generate();
+}
+function resetScene(){
   ['width','height','fps','frameStart','frameEnd','frameStep','samples','threads','scene','camera','extraPython','blenderArgs']
     .forEach(id=>$(id).value='');
   $('engine').value='';$('device').value='';
-  $('mp4Crf').value=18;$('mp4CrfSlider').value=18;$('mp4Preset').value='medium';
-  $('mp4Codec').value='libx264';$('mp4Fps').value='';$('mp4Audio').value='';$('mp4ExtraArgs').value='';
-  $('gifFps').value=15;$('gifWidth').value=640;$('gifLoop').value=0;$('gifDither').value='bayer';
+  generate();
+}
+function resetMp4(){
+  $('mp4Crf').value=18;$('mp4CrfSlider').value=18;
+  $('mp4Preset').value='medium';$('mp4Codec').value='libx264';
+  $('mp4Fps').value='';$('mp4Audio').value='';$('mp4ExtraArgs').value='';
+  generate();
+}
+function resetGif(){
+  $('gifFps').value=15;$('gifWidth').value=640;
+  $('gifLoop').value=0;$('gifDither').value='bayer';
+  generate();
+}
+function resetWebm(){
   $('webmCrf').value=30;$('webmCrfSlider').value=30;$('webmFps').value='';
+  generate();
+}
+function resetSprite(){
   $('spriteCols').value=8;$('spriteScale').value='';
+  generate();
+}
+function resetLogging(){
   $('logLevel').value='INFO';$('logFile').value='';
+  generate();
+}
+function resetNotify(){
   $('notifyWebhook').value='';
   document.querySelectorAll('.n-chip').forEach(c=>c.classList.toggle('active',c.dataset.val==='done'||c.dataset.val==='error'));
+  generate();
+}
+function resetMeta(){
   $('jobId').value='';$('tags').value='';
+  generate();
+}
+
+// ── RESET ────────────────────────────────────────────────
+function resetAll() {
+  resetPaths();resetOutputs();resetGit();resetReliability();
+  resetFlags();resetScene();resetMp4();resetGif();resetWebm();
+  resetSprite();resetLogging();resetNotify();resetMeta();
   generate();
 }
 
