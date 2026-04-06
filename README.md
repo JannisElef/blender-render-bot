@@ -1,6 +1,6 @@
 # Blender Render Bot
 
-> Remote Blender rendering manager using Git. Drop it next to your repo of `.blend` files, start the **Watcher**, and every push that touches a `.blend` or its matching `.json` job config automatically triggers a headless render - then pushes the outputs back.
+> Remote Blender rendering manager using Git. Drop it next to your repo of `.blend` files, start the **Watcher**, and every push that touches a `.blend` or its matching `.json` job config automatically triggers a headless render — then pushes the outputs back.
 
 🔗 [Web-based job configurator](https://janniselef.github.io/blender-render-bot/) · [Project page](https://janniselef.github.io/projects/blender-render-bot/)
 
@@ -31,7 +31,7 @@
 | Python | 3.10+ |
 | [Blender](https://www.blender.org/) | Any version with CLI support |
 | [FFmpeg](https://ffmpeg.org/) | Current recommended |
-| Git | - |
+| Git | — |
 
 ---
 
@@ -53,7 +53,7 @@ python render_bot.py execute my_scene.blend \
     --device GPU \
     --fancy
 
-# Dry run - print every command without running anything
+# Dry run — print every command without running anything
 python render_bot.py execute my_scene.blend --dry-run --log-level DEBUG
 ```
 
@@ -97,7 +97,7 @@ per-job .json file   (--json  /  auto-discovered by watcher)
 live values from .blend   (fallback for everything unset)
 ```
 
-> Any scene parameter left unset at all three levels is read **live from the `.blend`** - no need to duplicate settings between your file and your config.
+> Any scene parameter left unset at all three levels is read **live from the `.blend`** — no need to duplicate settings between your file and your config.
 
 ---
 
@@ -128,7 +128,13 @@ The watcher pairs every changed `.blend` with a same-name `.json` if one exists.
 
 ## 5. Job Config File (JSON)
 
-Place a `<blend_stem>.json` next to the `.blend`. **All keys are optional** - omitting a key means the value comes from the `.blend` scene.
+There are two kinds of JSON config files. Both use the same key names as the CLI arguments (with hyphens replaced by underscores). All keys are optional in both files.
+
+> A key set to `null` is ignored during config merging — it will not clear a value set at a lower-priority level.
+
+### Per-job config — `<blend_stem>.json`
+
+Place next to the `.blend`. Highest config priority. Render and output settings only — scene values not set here fall back to the `.blend`.
 
 ```json
 {
@@ -184,13 +190,94 @@ Place a `<blend_stem>.json` next to the `.blend`. **All keys are optional** - om
 }
 ```
 
-> A key set to `null` is ignored during config merging - it will not clear a value set at a lower-priority level.
+### Global config — `render_bot.json` (passed via `--config`)
+
+Lowest config priority. Typically placed at the repo root and loaded with `--config render_bot.json`. Covers all per-job keys above plus tool paths, watcher behaviour, and logging.
+
+```json
+{
+    "blender":               "blender",
+    "ffmpeg":                "ffmpeg",
+
+    "log_level":             "INFO",
+    "log_file":              null,
+    "show_progress":         false,
+    "fancy":                 false,
+    "dry_run":               false,
+
+    "outputs":               ["mp4"],
+
+    "width":                 null,
+    "height":                null,
+    "fps":                   null,
+    "frame_start":           null,
+    "frame_end":             null,
+    "frame_step":            null,
+    "scene":                 null,
+    "camera":                null,
+    "samples":               null,
+    "engine":                null,
+    "device":                null,
+    "threads":               null,
+    "frame_format":          "PNG",
+    "extra_python":          null,
+    "blender_args":          [],
+
+    "mp4_crf":               18,
+    "mp4_preset":            "medium",
+    "mp4_fps":               null,
+    "mp4_codec":             "libx264",
+    "mp4_audio":             null,
+    "mp4_extra_args":        [],
+
+    "gif_fps":               15,
+    "gif_width":             640,
+    "gif_loop":              0,
+    "gif_dither":            "bayer",
+
+    "webm_crf":              30,
+    "webm_fps":              null,
+
+    "spritesheet_cols":      8,
+    "spritesheet_scale":     null,
+
+    "image_format":          "PNG",
+    "image_frame":           null,
+
+    "keep_frames":           false,
+    "output_dir":            null,
+    "output_name":           null,
+
+    "summary":               false,
+    "job_id":                null,
+    "tags":                  [],
+
+    "notify_webhook":        null,
+    "notify_on":             ["error", "done"],
+
+    "job_timeout":           null,
+    "max_retries":           3,
+    "retry_delay":           10,
+    "max_parallel":          1,
+    "watch_patterns":        ["*.blend", "*.json"],
+    "ignore_patterns":       [],
+    "remote":                "origin",
+    "branch":                null,
+    "push_branch":           null,
+    "commit_message":        null,
+    "git_pull_strategy":     "merge",
+    "push_outputs_only":     false,
+    "lock_file":             ".render_bot.lock",
+    "state_file":            ".render_bot_state.json",
+    "once":                  false
+}
+```
 
 ---
 
 ## 6. CLI Reference
 
-### `execute` - Render a Single File
+### `execute` — Render a Single File
 
 ```bash
 python render_bot.py execute <blend_file> [options]
@@ -208,7 +295,7 @@ All [shared arguments](#shared-arguments-execute--watch) also apply.
 **Examples:**
 
 ```bash
-# Minimal - all settings from the .blend
+# Minimal — all settings from the .blend
 python render_bot.py execute hero_shot.blend --fancy
 
 # GPU render, multiple outputs, high quality
@@ -230,7 +317,7 @@ python render_bot.py execute hero_shot.blend \
 
 ---
 
-### `watch` - Start the Git Watcher
+### `watch` — Start the Git Watcher
 
 ```bash
 python render_bot.py watch [options]
@@ -267,7 +354,7 @@ All [shared arguments](#shared-arguments-execute--watch) also apply.
 | `--retry-delay INT` | `10` | Seconds between retries |
 | `--job-timeout INT` | `None` | Kill a job after N seconds (`None` = no limit) |
 | `--max-parallel INT` | `1` | Maximum concurrent render jobs |
-| `--once` | `False` | Check for changes exactly once then exit - useful for CI |
+| `--once` | `False` | Check for changes exactly once then exit — useful for CI |
 
 #### State & Lock
 
@@ -393,9 +480,9 @@ Pass one or more to `--outputs` (or `"outputs"` in JSON):
 |---|---|
 | `mp4` | H.264 / H.265 / VP9 video via FFmpeg |
 | `gif` | Palette-optimised animated GIF with configurable dithering |
-| `webm` | VP9 WebM - supports alpha channel |
+| `webm` | VP9 WebM — supports alpha channel |
 | `frames` | Keep individual rendered frames (PNG / EXR / JPEG, matching `--frame-format`). Implies `--keep-frames` |
-| `spritesheet` | Single tiled PNG of all frames - useful for game assets |
+| `spritesheet` | Single tiled PNG of all frames — useful for game assets |
 | `image` | Render a single still frame to PNG / JPEG / EXR / TIFF / BMP / WEBP |
 
 ```bash
@@ -459,18 +546,18 @@ python render_bot.py watch \
 
 ## 10. Notes & Tips
 
-- **Lock file** - On startup the watcher writes `.render_bot.lock` with its PID and removes it on exit. Stale locks from dead processes are cleared automatically.
+- **Lock file** — On startup the watcher writes `.render_bot.lock` with its PID and removes it on exit. Stale locks from dead processes are cleared automatically.
 
-- **State file** - `.render_bot_state.json` persists the last processed Git hash. A restarted watcher picks up from where it left off instead of skipping commits.
+- **State file** — `.render_bot_state.json` persists the last processed Git hash. A restarted watcher picks up from where it left off instead of skipping commits.
 
-- **Blend defaults query** - Blender is launched once in a lightweight Python-only mode before the actual render to read any unset scene values. This adds a few seconds per job but eliminates duplicated config.
+- **Blend defaults query** — Blender is launched once in a lightweight Python-only mode before the actual render to read any unset scene values. This adds a few seconds per job but eliminates duplicated config.
 
-- **`--fancy` + `--log-file`** - Color codes appear only in the terminal stream; the log file always receives plain text regardless.
+- **`--fancy` + `--log-file`** — Color codes appear only in the terminal stream; the log file always receives plain text regardless.
 
-- **`--dry-run` + `--log-level DEBUG`** - Prints every command that would run, including the full Blender Python expression, without touching the filesystem or spawning any processes.
+- **`--dry-run` + `--log-level DEBUG`** — Prints every command that would run, including the full Blender Python expression, without touching the filesystem or spawning any processes.
 
-- **`null` in JSON** - A key set to `null` is ignored during config merging; it will not clear a value set at a lower-priority level.
+- **`null` in JSON** — A key set to `null` is ignored during config merging; it will not clear a value set at a lower-priority level.
 
-- **`image` output** - Unlike the other formats, `image` bypasses the frame sequence entirely and calls `bpy.ops.render.render(write_still=True)` directly for the target frame. Use `--image-frame` to pick a specific frame; defaults to `frame_start` or the `.blend` value.
+- **`image` output** — Unlike the other formats, `image` bypasses the frame sequence entirely and calls `bpy.ops.render.render(write_still=True)` directly for the target frame. Use `--image-frame` to pick a specific frame; defaults to `frame_start` or the `.blend` value.
 
-- **`--max-parallel`** - When set above `1`, jobs are dispatched as threads. Each thread runs its own Executor independently; results are merged before the final git push.
+- **`--max-parallel`** — When set above `1`, jobs are dispatched as threads. Each thread runs its own Executor independently; results are merged before the final git push.

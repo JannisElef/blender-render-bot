@@ -510,6 +510,13 @@ input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;hei
         <div class="field"><label>Camera name <span class="badge badge-blend">from .blend</span></label><input type="text" id="camera" placeholder="Camera"></div>
       </div>
     </div>
+    <div class="group">
+      <div class="group-header">Advanced</div>
+      <div class="group-body cols-1">
+        <div class="field full"><label>--extra-python <span class="badge badge-opt">optional</span></label><input type="text" id="extraPython" placeholder="import bpy; bpy.context.scene.cycles.use_denoising = True"></div>
+        <div class="field full"><label>--blender-args <span class="badge badge-opt">optional</span></label><input type="text" id="blenderArgs" placeholder="--threads 4 --debug-all"></div>
+      </div>
+    </div>
   </div>
 
   <!-- MP4 -->
@@ -772,6 +779,8 @@ function buildArgs() {
   const threads=val('threads');if(threads)p.push(`--threads ${threads}`);
   const scene=val('scene');if(scene)p.push(`--scene ${scene}`);
   const camera=val('camera');if(camera)p.push(`--camera ${camera}`);
+  const extraPy=val('extraPython');if(extraPy)p.push(`--extra-python "${extraPy}"`);
+  const blenderArgs=val('blenderArgs');if(blenderArgs)p.push(`--blender-args ${blenderArgs}`);
   const mp4Crf=val('mp4Crf');if(mp4Crf&&mp4Crf!=='18')p.push(`--mp4-crf ${mp4Crf}`);
   const mp4Preset=val('mp4Preset');if(mp4Preset&&mp4Preset!=='medium')p.push(`--mp4-preset ${mp4Preset}`);
   const mp4Codec=val('mp4Codec');if(mp4Codec&&mp4Codec!=='libx264')p.push(`--mp4-codec ${mp4Codec}`);
@@ -877,6 +886,8 @@ function buildJson() {
   const threads=val('threads');if(threads)cfg.threads=parseInt(threads);
   const scene=val('scene');if(scene)cfg.scene=scene;
   const camera=val('camera');if(camera)cfg.camera=camera;
+  const extraPy=val('extraPython');if(extraPy)cfg.extra_python=extraPy;
+  const blenderArgs=val('blenderArgs');if(blenderArgs)cfg.blender_args=blenderArgs.split(/\s+/);
   const mp4Crf=val('mp4Crf');if(mp4Crf)cfg.mp4_crf=parseInt(mp4Crf);
   const mp4Preset=val('mp4Preset');if(mp4Preset)cfg.mp4_preset=mp4Preset;
   const mp4Codec=val('mp4Codec');if(mp4Codec)cfg.mp4_codec=mp4Codec;
@@ -1026,6 +1037,8 @@ function applyJson(cfg) {
   setV('engine',cfg.engine);setV('device',cfg.device);
   setV('samples',cfg.samples);setV('threads',cfg.threads);
   setV('scene',cfg.scene);setV('camera',cfg.camera);
+  if(cfg.extra_python) setV('extraPython',cfg.extra_python);
+  if(cfg.blender_args) setV('blenderArgs',cfg.blender_args.join(' '));
   setV('mp4Crf',cfg.mp4_crf);setV('mp4CrfSlider',cfg.mp4_crf);
   setV('mp4Preset',cfg.mp4_preset);setV('mp4Codec',cfg.mp4_codec);
   setV('mp4Fps',cfg.mp4_fps);setV('mp4Audio',cfg.mp4_audio);
@@ -1074,6 +1087,9 @@ function applyBat(text) {
   setFromArg('--frame-start','frameStart');setFromArg('--frame-end','frameEnd');
   setFromArg('--engine','engine');setFromArg('--device','device');
   setFromArg('--samples','samples');setFromArg('--frame-format','frameFormat');
+  setFromArg('--scene','scene');setFromArg('--camera','camera');
+  setFromArg('--extra-python','extraPython');
+  setFromArg('--blender-args','blenderArgs');
   setFromArg('--mp4-crf','mp4Crf');setFromArg('--mp4-crf','mp4CrfSlider');
   setFromArg('--mp4-preset','mp4Preset');setFromArg('--mp4-codec','mp4Codec');
   setFromArg('--webm-crf','webmCrf');setFromArg('--webm-crf','webmCrfSlider');
@@ -1107,7 +1123,7 @@ function resetAll() {
   $('lockFile').value='.render_bot.lock';$('stateFile').value='.render_bot_state.json';
   $('fancy').checked=true;$('showProgress').checked=false;
   $('summary').checked=false;$('dryRun').checked=false;$('once').checked=false;
-  ['width','height','fps','frameStart','frameEnd','frameStep','samples','threads','scene','camera']
+  ['width','height','fps','frameStart','frameEnd','frameStep','samples','threads','scene','camera','extraPython','blenderArgs']
     .forEach(id=>$(id).value='');
   $('engine').value='';$('device').value='';
   $('mp4Crf').value=18;$('mp4CrfSlider').value=18;$('mp4Preset').value='medium';
