@@ -6,6 +6,7 @@ Watcher (polls Git) + Executor (runs Blender & FFmpeg)
 
 import os
 import sys
+import math
 import time
 import json
 import glob
@@ -356,21 +357,31 @@ def query_blend_defaults(blend_path: Path, blender: str) -> dict:
 # ==========================================
 
 def send_webhook(url: str, payload: dict):
-    """Send a JSON POST to a webhook URL (Discord / Slack compatible)."""
     if not url:
         return
+        
     try:
         body = json.dumps(payload).encode("utf-8")
+
         req = urllib.request.Request(
             url,
             data=body,
-            headers={"Content-Type": "application/json"},
+            headers={
+                "Content-Type": "application/json",
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+            },
             method="POST",
         )
-        urllib.request.urlopen(req, timeout=10)
-        log.debug(f"Webhook sent to {url}")
+
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            log.debug(f"Webhook OK: {resp.status}")
+
+    except urllib.error.HTTPError as e:
+        error_body = e.read().decode()
+        log.error(f"Webhook HTTP ERROR {e.code}: {error_body}")
+
     except urllib.error.URLError as e:
-        log.warning(f"Webhook failed: {e}")
+        log.error(f"Webhook URL ERROR: {e}")
 
 
 def notify(config: dict, event: str, message: str, extra: dict = None):
@@ -386,12 +397,27 @@ def notify(config: dict, event: str, message: str, extra: dict = None):
         return
 
     job_id = config.get("job_id", "")
+    content_parts = ["**[render_bot.py]**"]
+    
+    if job_id:
+        content_parts.append(f"{job_id}")
+    
+    content_parts.append(f"- **{event.upper()}**")
+    
+    if message:
+        # content_parts.append(message)
+        content_parts.append(f"```json\n{message}\n```") # with formatting
+    
     payload = {
-        "content": f"**[render_bot]** `{job_id}` - **{event.upper()}**\n{message}",
-        "username": "render_bot",
+        "content": " ".join(content_parts),
+        "username": "Blender Render Bot",
     }
+
     if extra:
-        payload["embeds"] = [{"description": json.dumps(extra, indent=2)}]
+        payload["embeds"] = [{
+            # "description": json.dumps(extra, indent=2)[:4000]
+            "description": f"```json\n{json.dumps(extra, indent=2)[:4000]}\n```" # with formatting
+        }]
     send_webhook(url, payload)
 
 # ==========================================
@@ -628,8 +654,11 @@ def execute_job(blend_path, config: dict, dry_run: bool = False) -> list[str]:
         cols = config.get("spritesheet_cols", 8)
         sprite_scale = config.get("spritesheet_scale")
 
+        frame_files = sorted(glob.glob(frame_glob))
+        rows = math.ceil(len(frame_files) / cols) if frame_files else 1
+
         scale_filter = f"scale={sprite_scale}:-1," if sprite_scale else ""
-        tile_filter = f"{scale_filter}tile={cols}x0"
+        tile_filter = f"{scale_filter}tile={cols}x{rows}"
 
         sprite_out = out_dir / f"{name}_spritesheet.png"
         sprite_cmd = [
