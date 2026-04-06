@@ -164,7 +164,7 @@ log = logging.getLogger("render_bot")
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 
-OUTPUT_CHOICES = ["mp4", "gif", "webm", "frames", "spritesheet"]
+OUTPUT_CHOICES = ["mp4", "gif", "webm", "frames", "spritesheet", "image"]
 
 # ==========================================
 # CONFIG HELPERS
@@ -642,6 +642,41 @@ def execute_job(blend_path, config: dict, dry_run: bool = False) -> list[str]:
         run_cmd(sprite_cmd, show_progress=show_progress, dry_run=dry_run)
         generated.append(str(sprite_out))
 
+
+    # ---- Image (single still frame) ----
+    if "image" in outputs:
+        img_fmt = config.get("image_format", "PNG").upper()
+        img_frame = config.get("image_frame")
+
+        # Determine which frame to render - use image_frame if set, else frame_start
+        if img_frame is None:
+            img_frame = blend_defaults.get("frame_start") or 1
+
+        log.info(_make_step(f"Rendering still image (frame {img_frame}, format {img_fmt})..."))
+
+        ext_still_map = {"PNG": "png", "JPEG": "jpg", "JPG": "jpg",
+                         "EXR": "exr", "TIFF": "tif", "BMP": "bmp", "WEBP": "webp"}
+        img_ext = ext_still_map.get(img_fmt, img_fmt.lower())
+        img_out = out_dir / f"{name}.{img_ext}"
+
+        # Build a python expression that also sets frame + image format
+        img_py_parts = []
+        base_py = build_blender_py_overrides(config, blend_defaults)
+        if base_py:
+            img_py_parts.append(base_py)
+        img_py_parts.append(
+            f"import bpy; "
+            f"bpy.context.scene.render.image_settings.file_format={repr(img_fmt)}; "
+            f"bpy.context.scene.frame_set({img_frame}); "
+            f"bpy.context.scene.render.filepath={repr(str(img_out))}; "
+            f"bpy.ops.render.render(write_still=True)"
+        )
+        img_py = "; ".join(img_py_parts)
+
+        img_cmd = [blender, "-b", str(blend_path), "--python-expr", img_py]
+        run_cmd(img_cmd, show_progress=show_progress, dry_run=dry_run, timeout=job_timeout)
+        generated.append(str(img_out))
+
     # ---- Frames (keep) ----
     if "frames" in outputs:
         frame_files = sorted(glob.glob(frame_glob))
@@ -1014,6 +1049,14 @@ def build_common_parser() -> argparse.ArgumentParser:
                    help="Number of columns in the spritesheet. (default: 8)")
     p.add_argument("--spritesheet-scale", type=int, default=None, dest="spritesheet_scale",
                    help="Width of each frame in the spritesheet (None = original).")
+
+
+    # --- Image output ---
+    p.add_argument("--image-format", default="PNG", dest="image_format",
+                   choices=["PNG", "JPEG", "EXR", "TIFF", "BMP", "WEBP"],
+                   help="Output format for single-image renders. (default: PNG)")
+    p.add_argument("--image-frame", type=int, default=None, dest="image_frame",
+                   help="Which frame to render as a still image (defaults to frame_start or .blend value).")
 
     # --- Frames ---
     p.add_argument("--keep-frames", action="store_true", dest="keep_frames",
