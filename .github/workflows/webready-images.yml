@@ -1,0 +1,20 @@
+name: Webready Images
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "assets/img/**"
+      - "assets/img/web/**"
+
+permissions:
+  contents: write
+
+jobs:
+  webready:
+    uses: JannisElef/webready-images-workflow/.github/workflows/webready-images.yml@v1
+    with:
+      source-dir: assets/img
+      output-dir: assets/img/web
+      quality: 80
+      suffix: -web
